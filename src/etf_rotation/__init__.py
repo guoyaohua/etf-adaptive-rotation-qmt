@@ -1,4 +1,4 @@
-"""Regime-aware ETF rotation for QMT."""
+"""Adaptive ETF rotation for QMT."""
 
 from .config import AppConfig, load_config
 from .strategy import RegimeRotationStrategy, TargetPortfolio

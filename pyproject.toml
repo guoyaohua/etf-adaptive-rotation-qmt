@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "etf-regime-rotation-qmt"
+name = "etf-adaptive-rotation-qmt"
 version = "0.1.0"
-description = "Regime-aware T+0 ETF rotation and risk-control strategy for QMT"
+description = "Adaptive T+0 ETF rotation and risk-control strategy for QMT"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

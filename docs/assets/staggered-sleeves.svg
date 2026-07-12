@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Four staggered four-week sleeves</title>
+  <desc id="desc">The portfolio is divided into four equal sleeves. One sleeve receives a new signal every Friday, so each sleeve holds its signal for about four weeks while their average becomes the portfolio target.</desc>
+  <defs><linearGradient id="bg" x1="0" x2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#17233b"/></linearGradient><style>.h{font:700 24px system-ui;fill:#f8fafc}.t{font:600 16px system-ui;fill:#e2e8f0}.s{font:400 13px system-ui;fill:#94a3b8}.g{stroke:#475569;stroke-width:1}.active{fill:#0ea5e9}.hold{fill:#164e63}.target{fill:#7c3aed}.box{fill:#1e293b;stroke:#475569;rx:13}</style></defs>
+  <rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+  <text x="50" y="50" class="h">Staggered sleeves reduce rebalance-date dependence</text>
+  <g transform="translate(190 83)">
+    <text x="70" y="0" class="t">Week 1</text><text x="270" y="0" class="t">Week 2</text><text x="470" y="0" class="t">Week 3</text><text x="670" y="0" class="t">Week 4</text><text x="870" y="0" class="t">Week 5</text>
+    <g transform="translate(0 25)"><text x="-135" y="28" class="t">Sleeve A · 25%</text><rect class="active" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="active" x="800" width="170" height="44" rx="10"/></g>
+    <g transform="translate(0 82)"><text x="-135" y="28" class="t">Sleeve B · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="active" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
+    <g transform="translate(0 139)"><text x="-135" y="28" class="t">Sleeve C · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="active" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
+    <g transform="translate(0 196)"><text x="-135" y="28" class="t">Sleeve D · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="active" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
+  </g>
+  <rect x="50" y="320" width="15" height="15" rx="3" class="active"/><text x="75" y="333" class="s">refresh this sleeve</text><rect x="240" y="320" width="15" height="15" rx="3" class="hold"/><text x="265" y="333" class="s">keep previous sleeve target</text><text x="965" y="333" class="t">Portfolio = average(A, B, C, D)</text>
+</svg>

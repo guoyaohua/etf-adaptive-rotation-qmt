@@ -1,5 +1,5 @@
 project:
-  name: "ETF Regime Rotation QMT"
+  name: "ETF Adaptive Rotation for QMT"
   timezone: "Asia/Shanghai"
 
 universe:

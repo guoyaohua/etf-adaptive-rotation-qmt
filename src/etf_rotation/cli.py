@@ -170,7 +170,7 @@ def command_qmt_plan(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="ETF Regime Rotation QMT")
+    parser = argparse.ArgumentParser(description="ETF Adaptive Rotation for QMT")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     download = subparsers.add_parser("download", help="从本机 QMT 下载日线")
