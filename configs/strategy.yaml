@@ -1,0 +1,86 @@
+project:
+  name: "ETF Regime Rotation QMT"
+  timezone: "Asia/Shanghai"
+
+universe:
+  # 仅配置在沪深市场具有日内回转交易资格的品种。实盘前仍须向券商确认。
+  - {symbol: "513100.SH", name: "纳指ETF", role: "growth", group: "us_equity", t0: true}
+  - {symbol: "513500.SH", name: "标普500ETF", role: "growth", group: "us_equity", t0: true}
+  - {symbol: "513050.SH", name: "中概互联网ETF", role: "growth", group: "china_internet", t0: true}
+  - {symbol: "510900.SH", name: "H股ETF", role: "growth", group: "hk_equity", t0: true}
+  - {symbol: "159920.SZ", name: "恒生ETF", role: "growth", group: "hk_equity", t0: true}
+  - {symbol: "513520.SH", name: "日经ETF", role: "growth", group: "jp_equity", t0: true}
+  - {symbol: "513030.SH", name: "德国ETF", role: "growth", group: "eu_equity", t0: true}
+  - {symbol: "513080.SH", name: "法国ETF", role: "growth", group: "eu_equity", t0: true}
+  - {symbol: "518880.SH", name: "黄金ETF", role: "defensive", group: "gold", t0: true}
+  - {symbol: "511010.SH", name: "国债ETF", role: "defensive", group: "treasury", t0: true}
+  - {symbol: "511260.SH", name: "十年国债ETF", role: "defensive", group: "treasury", t0: true}
+
+strategy:
+  allocation_mode: "unified"      # 股票、黄金和国债在同一绝对/相对动量框架竞争
+  rebalance_schedule: "staggered_weeks" # 四个错峰月度子组合，每周更新一个子组合
+  rebalance_sleeves: 4
+  rebalance_weekday: 4              # 周五收盘生成信号，下一交易日开盘执行
+  rebalance_interval_weeks: 4       # fixed_weeks 模式使用；月末模式忽略
+  rebalance_phase_weeks: 0          # fixed_weeks 模式的稳定纪元相位
+  momentum_lookbacks: [20, 60, 120]
+  momentum_weights: [0.20, 0.30, 0.50]
+  momentum_skip_days: 5             # 避免追逐最近一周的短期脉冲
+  growth_trend_sma: 180
+  defensive_trend_sma: 100
+  fast_ema: 50
+  fast_slope_days: 20
+  volatility_lookback: 40
+  atr_lookback: 20
+  correlation_lookback: 60
+  max_pairwise_correlation: 0.85
+  min_average_amount: 20000000      # 20日平均成交额下限（元）
+  liquidity_lookback: 20
+  min_price: 0.50
+  risk_on_breadth: 0.40
+  risk_on_median_momentum: 0.00
+  min_weighted_momentum: 0.00
+  score_volatility_floor: 0.10
+  selection_count: 3
+  defensive_selection_count: 2
+  target_annual_volatility: 0.10
+  max_asset_weight: 0.40
+  max_defensive_weight: 0.40
+  max_gross_exposure: 0.90
+  min_weight_change: 0.01
+
+risk:
+  soft_drawdown: 0.08
+  soft_drawdown_scale: 0.50
+  hard_drawdown: 0.12
+  hard_cooldown_days: 10
+  daily_loss_limit: 0.02
+  daily_loss_cooldown_days: 5
+  initial_stop_atr: 2.50
+  trailing_activation_atr: 1.50
+  trailing_stop_atr: 3.00
+
+execution:
+  initial_capital: 1000000
+  lot_size: 100
+  commission_rate: 0.00010
+  minimum_commission: 5.0
+  slippage_rate: 0.00050
+  stress_cost_multiplier: 2.0
+  max_quote_age_seconds: 5
+  strategy_tag: "ETF_RR_V1"
+
+qmt:
+  client_path_env: "QMT_CLIENT_PATH"
+  account_id_env: "QMT_ACCOUNT_ID"
+  allow_live_orders: false
+  data_directory: "data/qmt"
+  runtime_directory: "runtime"
+
+validation:
+  minimum_years: 3.0
+  maximum_drawdown: 0.15
+  minimum_calmar: 0.70
+  minimum_sharpe: 0.60
+  minimum_positive_year_ratio: 0.60
+  require_positive_stress_cagr: true
