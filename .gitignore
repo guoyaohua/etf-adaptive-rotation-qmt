@@ -19,6 +19,8 @@ venv/
 *secrets*.json
 configs/*.local.yaml
 configs/*.local.yml
+configs/local.yaml
+configs/local.yml
 data/qmt/*
 !data/qmt/.gitkeep
 reports/*

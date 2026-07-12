@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import random
 import time
@@ -10,6 +9,7 @@ from typing import Any, Mapping
 
 from .config import AppConfig
 from .execution import target_quantities
+from .runtime import atomic_write_json, ledger_quantities, load_ledger, now_shanghai
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,12 @@ class PlannedOrder:
     quantity: int
     price: float
     reason: str
+
+
+class OrderSubmissionError(RuntimeError):
+    def __init__(self, message: str, submitted_order_ids: list[int]):
+        super().__init__(message)
+        self.submitted_order_ids = submitted_order_ids
 
 
 def build_order_plan(
@@ -112,20 +118,78 @@ class QmtBroker:
                 for symbol, quantity in owned_positions.items()
                 if int(quantity) > 0 and account_quantities.get(symbol, 0) > 0
             }
-        ticks = self.xtdata.get_full_tick(self.config.symbols)
+        quotes = self.quotes()
         prices: dict[str, float] = {}
-        for symbol, tick in ticks.items():
-            quote_time = tick.get("time", 0)
-            if quote_time:
-                quote_seconds = float(quote_time) / 1000.0 if float(quote_time) > 10_000_000_000 else float(quote_time)
-                age = time.time() - quote_seconds
-                if age > float(self.config.execution["max_quote_age_seconds"]):
-                    continue
-            ask = tick.get("askPrice", [0])[0]
-            bid = tick.get("bidPrice", [0])[0]
-            last = tick.get("lastPrice", 0)
-            prices[symbol] = float(ask or bid or last)
+        for symbol, quote in quotes.items():
+            prices[symbol] = float(quote["last"] or quote["ask"] or quote["bid"])
         return asset, account_quantities, account_sellable, strategy_quantities, prices
+
+    def quotes(self) -> dict[str, dict[str, float]]:
+        ticks = self.xtdata.get_full_tick(self.config.symbols)
+        result: dict[str, dict[str, float]] = {}
+        for symbol, tick in ticks.items():
+            quote_time = float(tick.get("time", 0) or 0)
+            # A missing timestamp cannot prove freshness. Failing closed is
+            # important because old cached prices can create oversized orders.
+            if not quote_time:
+                continue
+            quote_seconds = quote_time / 1000.0 if quote_time > 10_000_000_000 else quote_time
+            age = time.time() - quote_seconds
+            if age < -5 or age > float(self.config.execution["max_quote_age_seconds"]):
+                continue
+            ask = float((tick.get("askPrice") or [0])[0] or 0)
+            bid = float((tick.get("bidPrice") or [0])[0] or 0)
+            last = float(tick.get("lastPrice", 0) or 0)
+            result[symbol] = {"ask": ask, "bid": bid, "last": last, "time": quote_time}
+        return result
+
+    def query_strategy_orders(self, cancelable_only: bool = False) -> list[Any]:
+        tag = str(self.config.execution["strategy_tag"])
+        orders = self.trader.query_stock_orders(self.account, cancelable_only=cancelable_only) or []
+        return [order for order in orders if str(getattr(order, "strategy_name", "")) == tag]
+
+    def query_strategy_order_ids(self) -> list[int]:
+        return [int(getattr(order, "order_id", 0)) for order in self.query_strategy_orders() if int(getattr(order, "order_id", 0)) > 0]
+
+    def query_strategy_trades(self) -> list[dict[str, Any]]:
+        tag = str(self.config.execution["strategy_tag"])
+        result: list[dict[str, Any]] = []
+        for trade in self.trader.query_stock_trades(self.account) or []:
+            if str(getattr(trade, "strategy_name", "")) != tag:
+                continue
+            order_type = int(getattr(trade, "order_type", 0))
+            side = "BUY" if order_type == self.xtconstant.STOCK_BUY else "SELL"
+            if side == "SELL" and order_type != self.xtconstant.STOCK_SELL:
+                continue
+            raw_commission = getattr(trade, "commission", None)
+            result.append(
+                {
+                    "trade_id": str(getattr(trade, "traded_id", "")),
+                    "account_id": str(getattr(trade, "account_id", "")),
+                    "order_id": int(getattr(trade, "order_id", 0)),
+                    "symbol": str(getattr(trade, "stock_code", "")),
+                    "side": side,
+                    "quantity": int(getattr(trade, "traded_volume", 0)),
+                    "price": float(getattr(trade, "traded_price", 0.0)),
+                    "amount": float(getattr(trade, "traded_amount", 0.0)),
+                    "commission": float(raw_commission) if raw_commission is not None else None,
+                    "traded_time": int(getattr(trade, "traded_time", 0)),
+                }
+            )
+        return result
+
+    def query_strategy_order_remarks(self) -> dict[str, list[int]]:
+        remarks: dict[str, list[int]] = {}
+        for order in self.query_strategy_orders():
+            value = str(getattr(order, "order_remark", "") or getattr(order, "remark", "")).strip()
+            if value:
+                remarks.setdefault(value, []).append(int(getattr(order, "order_id", 0)))
+        return remarks
+
+    def close(self) -> None:
+        stop = getattr(self.trader, "stop", None)
+        if callable(stop):
+            stop()
 
     def execute(
         self,
@@ -136,33 +200,48 @@ class QmtBroker:
             raise PermissionError("配置 qmt.allow_live_orders=false，禁止真实下单")
         if confirmation != self.CONFIRMATION:
             raise PermissionError("真实下单确认短语不匹配")
-        pending = self.trader.query_stock_orders(self.account, cancelable_only=True) or []
+        # This invariant belongs in the broker adapter as well as the CLI so a
+        # future caller cannot accidentally bypass the execution-time check.
+        from .runtime import is_continuous_trading_session
+
+        if not is_continuous_trading_session(now_shanghai()):
+            raise PermissionError("当前不在连续交易时段，禁止真实下单")
+        # Any unfinished or completed same-session order can make a second
+        # quantity stale. Fail closed for every observed order on that symbol.
+        pending = self.trader.query_stock_orders(self.account, cancelable_only=False) or []
         pending_symbols = {item.stock_code for item in pending}
+        fresh_symbols = set(self.quotes())
+        stale = sorted({order.symbol for order in orders}.difference(fresh_symbols))
+        if stale:
+            raise RuntimeError(f"下单前行情已过期或缺失，拒绝提交: {stale}")
         order_ids: list[int] = []
         for order in orders:
             if order.symbol in pending_symbols:
-                raise RuntimeError(f"{order.symbol} 已有在途委托，拒绝重复下单")
+                raise OrderSubmissionError(f"{order.symbol} 已有在途委托，拒绝重复下单", order_ids)
             side = self.xtconstant.STOCK_BUY if order.side == "BUY" else self.xtconstant.STOCK_SELL
             price_type = (
                 self.xtconstant.MARKET_SH_CONVERT_5_CANCEL
                 if order.symbol.endswith(".SH")
                 else self.xtconstant.MARKET_SZ_CONVERT_5_CANCEL
             )
-            order_id = self.trader.order_stock(
-                self.account,
-                order.symbol,
-                side,
-                order.quantity,
-                price_type,
-                order.price,
-                str(self.config.execution["strategy_tag"]),
-                order.reason,
-            )
+            try:
+                order_id = self.trader.order_stock(
+                    self.account,
+                    order.symbol,
+                    side,
+                    order.quantity,
+                    price_type,
+                    order.price,
+                    str(self.config.execution["strategy_tag"]),
+                    order.reason,
+                )
+            except Exception as exc:
+                raise OrderSubmissionError(f"{order.symbol} 下单异常: {exc}", order_ids) from exc
             if order_id <= 0:
-                raise RuntimeError(f"{order.symbol} 下单失败: {order_id}")
+                raise OrderSubmissionError(f"{order.symbol} 下单失败: {order_id}", order_ids)
             order_ids.append(int(order_id))
+            pending_symbols.add(order.symbol)
         return order_ids
-
 
 def save_plan(orders: list[PlannedOrder], output: str | Path, metadata: Mapping[str, Any]) -> None:
     path = Path(output)
@@ -172,15 +251,11 @@ def save_plan(orders: list[PlannedOrder], output: str | Path, metadata: Mapping[
         "orders": [asdict(order) for order in orders],
         "metadata": dict(metadata),
     }
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    atomic_write_json(path, payload)
 
 
 def load_owned_positions(path: str | Path) -> dict[str, int]:
     ledger = Path(path)
     if not ledger.exists():
         return {}
-    payload = json.loads(ledger.read_text(encoding="utf-8"))
-    positions = payload.get("positions", payload)
-    if not isinstance(positions, dict):
-        raise ValueError("策略持仓账本格式错误")
-    return {str(symbol): int(quantity) for symbol, quantity in positions.items() if int(quantity) > 0}
+    return ledger_quantities(load_ledger(ledger))

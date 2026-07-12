@@ -1,0 +1,9 @@
+# Copy this file to configs/local.yaml. The copy is ignored by Git.
+# Account id, password, API key and QMT path must stay in environment variables.
+# Relative extends paths are resolved from this file's directory.
+extends: strategy.yaml
+
+qmt:
+  # Keep false for research, dry-run planning and paper trading.
+  # Set true locally only after completing forward simulation and broker checks.
+  allow_live_orders: false

@@ -18,7 +18,7 @@ universe:
 
 strategy:
   allocation_mode: "unified"      # 股票、黄金和国债在同一绝对/相对动量框架竞争
-  rebalance_schedule: "staggered_weeks" # 四个错峰月度子组合，每周更新一个子组合
+  rebalance_schedule: "staggered_weeks" # 四个错峰四周子组合，每周更新一个子组合
   rebalance_sleeves: 4
   rebalance_weekday: 4              # 周五收盘生成信号，下一交易日开盘执行
   rebalance_interval_weeks: 4       # fixed_weeks 模式使用；月末模式忽略
@@ -76,6 +76,8 @@ qmt:
   allow_live_orders: false
   data_directory: "data/qmt"
   runtime_directory: "runtime"
+  history_start: "20150101"
+  live_plan_max_age_minutes: 20
 
 validation:
   minimum_years: 3.0

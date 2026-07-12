@@ -48,12 +48,45 @@ def _required(data: Mapping[str, Any], key: str) -> Any:
     return data[key]
 
 
-def load_config(path: str | Path) -> AppConfig:
-    config_path = Path(path).resolve()
-    with config_path.open("r", encoding="utf-8") as handle:
+def _deep_merge(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
+    """Merge nested mappings while replacing scalars and lists."""
+    result: dict[str, Any] = dict(base)
+    for key, value in override.items():
+        existing = result.get(key)
+        if isinstance(existing, Mapping) and isinstance(value, Mapping):
+            result[key] = _deep_merge(existing, value)
+        else:
+            result[key] = value
+    return result
+
+
+def _load_raw_config(config_path: Path, chain: tuple[Path, ...] = ()) -> dict[str, Any]:
+    resolved = config_path.resolve()
+    if resolved in chain:
+        cycle = " -> ".join(str(path) for path in (*chain, resolved))
+        raise ValueError(f"配置 extends 出现循环引用: {cycle}")
+    if not resolved.is_file():
+        raise FileNotFoundError(f"配置文件不存在: {resolved}")
+    with resolved.open("r", encoding="utf-8") as handle:
         raw = yaml.safe_load(handle)
     if not isinstance(raw, dict):
         raise ValueError("配置文件顶层必须是映射")
+
+    extends = raw.pop("extends", None)
+    if extends is None:
+        return raw
+    if not isinstance(extends, str) or not extends.strip():
+        raise ValueError("extends 必须是非空配置文件路径")
+    parent_path = Path(extends)
+    if not parent_path.is_absolute():
+        parent_path = resolved.parent / parent_path
+    parent = _load_raw_config(parent_path, (*chain, resolved))
+    return _deep_merge(parent, raw)
+
+
+def load_config(path: str | Path) -> AppConfig:
+    config_path = Path(path).resolve()
+    raw = _load_raw_config(config_path)
 
     universe_raw = _required(raw, "universe")
     universe = tuple(Instrument(**item) for item in universe_raw)
@@ -76,6 +109,9 @@ def load_config(path: str | Path) -> AppConfig:
         raise ValueError("最大总仓位不能超过 100%")
     if float(strategy["max_asset_weight"]) > float(strategy["max_gross_exposure"]):
         raise ValueError("单资产上限不能高于组合总仓位上限")
+    strategy_tag = str(_required(_required(raw, "execution"), "strategy_tag")).strip()
+    if not strategy_tag:
+        raise ValueError("execution.strategy_tag 不能为空")
 
     return AppConfig(
         path=config_path,
