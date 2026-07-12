@@ -14,6 +14,7 @@ import pandas as pd
 from .backtest import Backtester
 from .config import AppConfig, load_config
 from .data import CsvMarketDataStore, QmtDailyDownloader
+from .llm_decision import apply_llm_overlay, run_llm_decision
 from .qmt import OrderSubmissionError, PlannedOrder, QmtBroker, build_order_plan, save_plan
 from .reporting import write_backtest_report
 from .runtime import (
@@ -73,6 +74,21 @@ def _target_payload(target: TargetPortfolio) -> dict:
             for symbol in target.weights
         },
     }
+
+
+def _apply_configured_llm(
+    config: AppConfig, target: TargetPortfolio, refresh: bool = False
+) -> tuple[TargetPortfolio, dict | None]:
+    settings = config.llm
+    if not bool(settings.get("enabled", False)):
+        return target, None
+    cache = config.resolve_path(str(settings.get("cache_directory", "runtime/llm")))
+    names = {item.symbol: item.name for item in config.universe}
+    result = run_llm_decision(target, settings, names, cache, refresh=refresh)
+    overlaid = apply_llm_overlay(
+        target, result, float(settings.get("max_scale_down", 1.0)), bool(settings.get("allow_exits", True))
+    )
+    return overlaid, asdict(result)
 
 
 def _position_state_payload(targets: list[TargetPortfolio]) -> dict[str, dict[str, float]]:
@@ -151,6 +167,13 @@ def command_signal(args: argparse.Namespace) -> int:
     strategy = RegimeRotationStrategy(config)
     target = _scheduled_target(strategy, data, date)
     payload = _target_payload(target)
+    llm_result = None
+    if args.with_llm or bool(config.llm.get("enabled", False)):
+        if args.with_llm and not bool(config.llm.get("enabled", False)):
+            raise RuntimeError("--with-llm 要求配置 llm.enabled=true")
+        target, llm_result = _apply_configured_llm(config, target, refresh=args.refresh_llm)
+        payload = _target_payload(target)
+        payload["llm_decision"] = llm_result
     if args.output:
         path = Path(args.output)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -209,6 +232,14 @@ def command_doctor(args: argparse.Namespace) -> int:
             check("strategy ledger", False, str(exc))
     else:
         check("strategy ledger", False, "需要先设置账户环境变量")
+    if bool(config.llm.get("enabled", False)):
+        key_env = str(config.llm.get("api_key_env", "GITHUB_TOKEN"))
+        check(key_env, bool(os.environ.get(key_env)), "已设置" if os.environ.get(key_env) else "未设置")
+        try:
+            import litellm  # noqa: F401
+            check("litellm", True, "可导入")
+        except Exception as exc:
+            check("litellm", False, str(exc))
 
     if args.connect and client_path and account_id:
         broker: QmtBroker | None = None
@@ -368,6 +399,7 @@ def command_live_once(args: argparse.Namespace) -> int:
     strategy = RegimeRotationStrategy(config)
     target, sleeve_targets = _scheduled_targets(strategy, data, as_of)
     position_state = _position_state_payload(sleeve_targets)
+    target, llm_result = _apply_configured_llm(config, target, refresh=args.refresh_llm)
     first_session_after_signal = as_of.normalize() == target.decision_date.normalize()
     if args.execute and not first_session_after_signal and not args.allow_late:
         raise RuntimeError(
@@ -379,7 +411,7 @@ def command_live_once(args: argparse.Namespace) -> int:
         broker: QmtBroker | None = None
         try:
             broker = QmtBroker(config)
-            return _run_live_once_locked(args, config, broker, ledger_path, plan_path, target, position_state)
+            return _run_live_once_locked(args, config, broker, ledger_path, plan_path, target, position_state, llm_result)
         finally:
             if broker is not None:
                 broker.close()
@@ -388,6 +420,7 @@ def command_live_once(args: argparse.Namespace) -> int:
 def _run_live_once_locked(
     args: argparse.Namespace, config: AppConfig, broker: QmtBroker, ledger_path: Path,
     plan_path: Path, target: TargetPortfolio, position_state: dict[str, dict[str, float]],
+    llm_result: dict | None,
 ) -> int:
         ledger, applied_before = _reconcile(config, broker, ledger_path, target, position_state)
         requested_capital = float(args.capital if args.capital is not None else ledger["initial_capital"])
@@ -444,6 +477,7 @@ def _run_live_once_locked(
                 "prices": prices,
                 "reconciled_trades_before_plan": applied_before,
                 "position_state": position_state,
+                "llm_decision": llm_result,
             },
         )
         print(plan_path.read_text(encoding="utf-8"))
@@ -620,6 +654,8 @@ def build_parser() -> argparse.ArgumentParser:
     signal.add_argument("--config", required=True)
     signal.add_argument("--date")
     signal.add_argument("--output")
+    signal.add_argument("--with-llm", action="store_true", help="按配置运行 LLM 风险复核")
+    signal.add_argument("--refresh-llm", action="store_true", help="忽略本周 LLM 缓存并重新调用")
     signal.set_defaults(func=command_signal)
 
     doctor = subparsers.add_parser("doctor", help="检查配置、环境变量、行情、账本和可选 QMT 连接")
@@ -643,6 +679,7 @@ def build_parser() -> argparse.ArgumentParser:
     live_once.add_argument("--execute", action="store_true")
     live_once.add_argument("--ignore-session", action="store_true", help="仅供调试；即使非交易时段也生成计划")
     live_once.add_argument("--allow-late", action="store_true", help="显式允许错过首个交易日后追单（高风险）")
+    live_once.add_argument("--refresh-llm", action="store_true", help="忽略本周 LLM 缓存并重新调用")
     live_once.set_defaults(func=command_live_once)
 
     live_monitor = subparsers.add_parser("live-monitor", help="轮询策略持仓并执行 ATR/组合风险退出")

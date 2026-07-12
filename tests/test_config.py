@@ -2,6 +2,7 @@ from etf_rotation.config import load_config
 from etf_rotation.data import normalize_daily_frame
 import pandas as pd
 import pytest
+import yaml
 from etf_rotation.cli import _latest_common_date
 
 
@@ -50,6 +51,33 @@ def test_config_extends_rejects_cycles(tmp_path):
 
     with pytest.raises(ValueError, match="循环引用"):
         load_config(first)
+
+
+def test_llm_vote_config_is_loaded(config_path):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw["llm"].update({
+        "enabled": True, "mode": "vote",
+        "models": ["github_copilot/model-a", "github_copilot/model-b"],
+        "min_valid_votes": 2,
+    })
+    config_path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    config = load_config(config_path)
+
+    assert config.llm["mode"] == "vote"
+    assert config.llm["min_valid_votes"] == 2
+
+
+def test_llm_single_rejects_multiple_models(config_path):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw["llm"].update({
+        "mode": "single",
+        "models": ["github_copilot/model-a", "github_copilot/model-b"],
+    })
+    config_path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="只能配置一个模型"):
+        load_config(config_path)
 
 
 def test_csv_iso_dates_are_normalized():

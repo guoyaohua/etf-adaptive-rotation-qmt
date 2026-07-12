@@ -14,6 +14,7 @@ DENY_FILE_SUFFIXES = {".pem", ".p12", ".pfx", ".key"}
 PATTERNS = {
     "private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "GitHub token": re.compile(r"\b(?:ghp|github_pat)_[A-Za-z0-9_]{20,}\b"),
+    "GitHub OAuth token": re.compile(r"\bgho_[A-Za-z0-9_]{20,}\b"),
     "AWS access key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "generic assigned secret": re.compile(
         r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"]?(?!\s|\$\{|<|your_|example|none|null)[A-Za-z0-9_./+=-]{12,}"

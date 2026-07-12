@@ -79,6 +79,25 @@ qmt:
   history_start: "20150101"
   live_plan_max_age_minutes: 20
 
+llm:
+  enabled: false                    # 本地显式开启；默认纯量化，保证历史回测可复现
+  provider: "litellm"
+  mode: "single"                 # single 或 vote
+  models: ["github_copilot/gemini-3-pro-preview"]
+  api_key_env: "GITHUB_TOKEN"    # 只读取环境变量，禁止把 Token 写入 YAML
+  temperature: 0.0
+  seed: 42
+  timeout_seconds: 120
+  max_tokens: 1200
+  max_retries: 2
+  min_confidence: 0.70
+  min_valid_votes: 1
+  consensus_ratio: 0.50             # 胜出动作必须严格超过该比例
+  failure_policy: "quant_only"   # quant_only / all_cash / error
+  allow_exits: true
+  max_scale_down: 1.0               # LLM 最多可缩至现金；永远不能放大量化权重
+  cache_directory: "runtime/llm"
+
 validation:
   minimum_years: 3.0
   maximum_drawdown: 0.15

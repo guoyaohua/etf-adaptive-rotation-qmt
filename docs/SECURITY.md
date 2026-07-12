@@ -8,7 +8,7 @@
 - `.env`、`*.local.yaml`、行情缓存、订单计划、持仓账本、运行日志；
 - 包含个人交易、资产或成交明细的回测/实盘报告。
 
-程序只读取 `QMT_CLIENT_PATH` 和 `QMT_ACCOUNT_ID` 环境变量。`.env.example` 只能保留空值。
+程序只从环境变量读取 `QMT_CLIENT_PATH`、`QMT_ACCOUNT_ID` 和可选的 `GITHUB_TOKEN`。`.env.example` 只能保留空值。LLM Token、模型端点密钥和原始响应缓存不得进入 Git。
 
 提交前运行：
 

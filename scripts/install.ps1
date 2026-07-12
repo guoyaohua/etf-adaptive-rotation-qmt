@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [switch]$WithLlm
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,7 +12,8 @@ python --version
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host '[2/4] Installing project...'
-python -m pip install -e '.[dev]'
+$extras = if ($WithLlm) { '.[dev,llm]' } else { '.[dev]' }
+python -m pip install -e $extras
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host '[3/4] Running security checks...'

@@ -7,3 +7,8 @@ qmt:
   # Keep false for research, dry-run planning and paper trading.
   # Set true locally only after completing forward simulation and broker checks.
   allow_live_orders: false
+
+llm:
+  enabled: false
+  mode: "single"
+  models: ["github_copilot/gemini-3-pro-preview"]
