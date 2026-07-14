@@ -16,17 +16,30 @@ class StopEngine:
         initial_stop_atr: float,
         trailing_activation_atr: float,
         trailing_stop_atr: float,
+        minimum_stop_distance: float = 0.0,
     ):
         self.initial_stop_atr = float(initial_stop_atr)
         self.trailing_activation_atr = float(trailing_activation_atr)
         self.trailing_stop_atr = float(trailing_stop_atr)
+        self.minimum_stop_distance = float(minimum_stop_distance)
+
+    def initial_stop_price(self, state: PositionRiskState) -> float:
+        distance = max(
+            self.initial_stop_atr * state.atr_at_entry,
+            self.minimum_stop_distance * state.entry_price,
+        )
+        return state.entry_price - distance
 
     def stop_price(self, state: PositionRiskState) -> float:
-        initial = state.entry_price - self.initial_stop_atr * state.atr_at_entry
+        initial = self.initial_stop_price(state)
         gain = state.high_watermark - state.entry_price
         if gain < self.trailing_activation_atr * state.atr_at_entry:
             return initial
-        trailing = state.high_watermark - self.trailing_stop_atr * state.atr_at_entry
+        trailing_distance = max(
+            self.trailing_stop_atr * state.atr_at_entry,
+            self.minimum_stop_distance * state.entry_price,
+        )
+        trailing = state.high_watermark - trailing_distance
         return max(initial, trailing)
 
     def exit_price(
@@ -39,7 +52,7 @@ class StopEngine:
         if day_open <= stop:
             return day_open, "gap_stop"
         if day_low <= stop:
-            reason = "trailing_stop" if stop > state.entry_price - self.initial_stop_atr * state.atr_at_entry else "initial_stop"
+            reason = "trailing_stop" if stop > self.initial_stop_price(state) else "initial_stop"
             return stop, reason
         return None, None
 

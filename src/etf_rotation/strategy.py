@@ -15,6 +15,7 @@ from .indicators import (
     portfolio_volatility,
     simple_return,
 )
+from .version import STRATEGY_VERSION
 
 
 @dataclass(frozen=True)
@@ -89,7 +90,15 @@ class RegimeRotationStrategy:
         above_trend = bool(np.isfinite(trend) and last_close > trend)
         positive_slope = bool(np.isfinite(slope) and slope > 0)
         risk_floor = max(float(p["score_volatility_floor"]), volatility) if np.isfinite(volatility) else np.nan
-        score = momentum / risk_floor if np.isfinite(momentum) and np.isfinite(risk_floor) else np.nan
+        # Volatility is already used again by inverse-volatility position sizing.
+        # A fractional exponent keeps ranking risk-aware without applying the
+        # full penalty twice and systematically starving stronger equity trends.
+        score_exponent = float(p.get("score_volatility_exponent", 1.0))
+        score = (
+            momentum / (risk_floor**score_exponent)
+            if np.isfinite(momentum) and np.isfinite(risk_floor)
+            else np.nan
+        )
         atr_value = atr(frame, int(p["atr_lookback"]))
         eligible = bool(
             instrument.t0
@@ -198,6 +207,39 @@ class RegimeRotationStrategy:
         else:
             weights = pd.Series(dtype=float)
 
+        # Put part of otherwise idle risk budget into a defensive cash proxy,
+        # but only while that group remains above its long trend with positive
+        # momentum.  The fast-slope filter is intentionally not required here:
+        # this is a reserve allocation, not a primary momentum selection.
+        proxy_group = str(p.get("idle_cash_proxy_group", "")).strip()
+        proxy_cap = float(p.get("idle_cash_proxy_max_weight", 0.0))
+        if proxy_group and proxy_cap > 0:
+            proxy_candidates = [
+                item
+                for item in signals.values()
+                if item.group == proxy_group
+                and item.eligible
+                and item.above_trend
+                and item.momentum > float(p["min_weighted_momentum"])
+            ]
+            if proxy_candidates:
+                held_proxy = [symbol for symbol in selected if signals[symbol].group == proxy_group]
+                proxy = held_proxy[0] if held_proxy else max(proxy_candidates, key=lambda item: item.score).symbol
+                instrument_cap = float(
+                    p.get("max_defensive_weight", p["max_asset_weight"])
+                    if signals[proxy].role == "defensive"
+                    else p["max_asset_weight"]
+                )
+                available = max(0.0, float(p["max_gross_exposure"]) - float(weights.sum()))
+                addition = min(available, max(0.0, min(proxy_cap, instrument_cap) - float(weights.get(proxy, 0.0))))
+                if addition > 1e-6:
+                    weights.loc[proxy] = float(weights.get(proxy, 0.0)) + addition
+                    realized = portfolio_volatility(
+                        returns.tail(int(p["correlation_lookback"])), weights
+                    )
+                    if realized > 0:
+                        weights *= min(1.0, float(p["target_annual_volatility"]) / realized)
+
         gross = float(weights.sum())
         if gross > float(p["max_gross_exposure"]):
             weights *= float(p["max_gross_exposure"]) / gross
@@ -218,6 +260,7 @@ class RegimeRotationStrategy:
         weights = self._weights(selected, returns, signals)
         diagnostics.update(
             {
+                "strategy_version": STRATEGY_VERSION,
                 "selected_count": len(selected),
                 "eligible_count": sum(item.eligible for item in signals.values()),
                 "gross_exposure": float(sum(weights.values())),

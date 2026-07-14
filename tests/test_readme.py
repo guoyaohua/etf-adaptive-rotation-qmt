@@ -13,7 +13,7 @@ def test_readme_has_no_control_characters():
 def test_readme_math_blocks_are_complete():
     text = README.read_text(encoding="utf-8")
     assert text.count("```math") == 3
-    assert "Score_i = \\frac{M_i}{\\max(\\sigma_{40,i}, 0.10)}" in text
+    assert "Score_i = \\frac{M_i}{\\max(\\sigma_{40,i}, 0.10)^{0.75}}" in text
     assert "w_i = \\frac{1 / \\sigma_i}{\\sum_j (1 / \\sigma_j)}" in text
     # Catch the original malformed formula without rejecting a valid ``\frac``.
     assert " = rac{" not in text

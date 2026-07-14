@@ -9,6 +9,7 @@ import pandas as pd
 
 from .backtest import BacktestResult
 from .config import AppConfig
+from .version import STRATEGY_VERSION
 
 
 def _json_value(value: Any) -> Any:
@@ -59,6 +60,7 @@ def write_backtest_report(
     stress.equity.to_csv(directory / "equity_stress.csv")
     gates = evaluate_gates(base.metrics, stress.metrics, config)
     summary = {
+        "strategy_version": STRATEGY_VERSION,
         "base": _json_value(base.metrics),
         "stress": _json_value(stress.metrics),
         "gates": gates,
@@ -74,9 +76,9 @@ def write_backtest_report(
     def number(value: Any) -> str:
         return "N/A" if value is None or not np.isfinite(value) else f"{value:.3f}"
 
-    markdown = f"""# ETF 策略回测报告
+    markdown = f"""# ETF 策略回测报告 (v{STRATEGY_VERSION})
 
-> 结论：{'通过预设研究门槛，可进入模拟盘验证' if summary['passed_all_gates'] else '未通过全部预设门槛，不应进入实盘'}。历史结果不保证未来收益。
+> 策略版本：`v{STRATEGY_VERSION}`。结论：{'通过预设研究门槛，可进入模拟盘验证' if summary['passed_all_gates'] else '未通过全部预设门槛，不应进入实盘'}。历史结果不保证未来收益。
 
 | 指标 | 基础成本 | 双倍成本 |
 |---|---:|---:|

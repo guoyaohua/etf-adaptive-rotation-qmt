@@ -34,6 +34,7 @@ def config_path(tmp_path: Path) -> Path:
             "min_average_amount": 1,
             "selection_count": 2,
             "defensive_selection_count": 1,
+            "idle_cash_proxy_group": "bond",
         }
     )
     raw["execution"]["initial_capital"] = 100000

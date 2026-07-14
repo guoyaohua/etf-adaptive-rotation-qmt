@@ -25,6 +25,7 @@ RISK = {
     "initial_stop_atr": 2.5,
     "trailing_activation_atr": 1.5,
     "trailing_stop_atr": 3.0,
+    "minimum_stop_distance": 0.0,
     "hard_drawdown": 0.12,
     "hard_cooldown_days": 10,
     "daily_loss_limit": 0.02,
@@ -260,6 +261,31 @@ def test_live_risk_trailing_stop_updates_state():
     assert equity == pytest.approx(890.0)
     assert exits == {"ETF.SH": "trailing_stop"}
     assert ledger["positions"]["ETF.SH"]["active_stop"] == pytest.approx(9.0)
+
+
+def test_live_risk_uses_same_minimum_stop_distance_as_backtest():
+    ledger = new_ledger("account", "TAG", 9_900)
+    ledger.update(
+        {
+            "cash": 0.0,
+            "peak_equity": 10_000.0,
+            "previous_equity": 10_000.0,
+            "positions": {
+                "ETF.SH": {
+                    "quantity": 100,
+                    "average_cost": 100.0,
+                    "atr_at_entry": 0.1,
+                    "high_watermark": 100.0,
+                }
+            },
+        }
+    )
+    risk = {**RISK, "minimum_stop_distance": 0.015}
+
+    ledger, exits, _ = evaluate_live_risk(ledger, {"ETF.SH": 99.0}, risk, "2025-01-03")
+
+    assert exits == {}
+    assert ledger["positions"]["ETF.SH"]["active_stop"] == pytest.approx(98.5)
 
 
 def test_live_risk_exit_remains_latched_after_price_rebound():

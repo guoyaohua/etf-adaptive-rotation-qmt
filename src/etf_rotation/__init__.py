@@ -2,6 +2,13 @@
 
 from .config import AppConfig, load_config
 from .strategy import RegimeRotationStrategy, TargetPortfolio
+from .version import STRATEGY_VERSION, __version__
 
-__all__ = ["AppConfig", "RegimeRotationStrategy", "TargetPortfolio", "load_config"]
-__version__ = "0.2.0"
+__all__ = [
+    "AppConfig",
+    "RegimeRotationStrategy",
+    "STRATEGY_VERSION",
+    "TargetPortfolio",
+    "__version__",
+    "load_config",
+]

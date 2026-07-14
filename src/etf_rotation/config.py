@@ -6,6 +6,8 @@ from typing import Any, Mapping
 
 import yaml
 
+from .version import STRATEGY_VERSION
+
 
 @dataclass(frozen=True)
 class Instrument:
@@ -89,6 +91,16 @@ def load_config(path: str | Path) -> AppConfig:
     config_path = Path(path).resolve()
     raw = _load_raw_config(config_path)
 
+    project = raw.get("project", {})
+    if not isinstance(project, Mapping):
+        raise ValueError("project 配置必须是映射")
+    configured_version = str(project.get("strategy_version", "")).strip()
+    if configured_version != STRATEGY_VERSION:
+        raise ValueError(
+            "project.strategy_version 必须与代码版本一致："
+            f"配置={configured_version or 'missing'}，代码={STRATEGY_VERSION}"
+        )
+
     universe_raw = _required(raw, "universe")
     universe = tuple(Instrument(**item) for item in universe_raw)
     if not universe:
@@ -110,6 +122,20 @@ def load_config(path: str | Path) -> AppConfig:
         raise ValueError("最大总仓位不能超过 100%")
     if float(strategy["max_asset_weight"]) > float(strategy["max_gross_exposure"]):
         raise ValueError("单资产上限不能高于组合总仓位上限")
+    score_exponent = float(strategy.get("score_volatility_exponent", 1.0))
+    if not 0.0 <= score_exponent <= 2.0:
+        raise ValueError("strategy.score_volatility_exponent 必须在 0 到 2 之间")
+    proxy_cap = float(strategy.get("idle_cash_proxy_max_weight", 0.0))
+    if not 0.0 <= proxy_cap <= float(strategy["max_gross_exposure"]):
+        raise ValueError("strategy.idle_cash_proxy_max_weight 必须在 0 到最大总仓位之间")
+    proxy_group = str(strategy.get("idle_cash_proxy_group", "")).strip()
+    known_groups = {item.group for item in universe}
+    if proxy_cap > 0 and proxy_group not in known_groups:
+        raise ValueError("启用闲置现金代理时，strategy.idle_cash_proxy_group 必须是标的池中的已知分组")
+    risk = _required(raw, "risk")
+    minimum_stop_distance = float(risk.get("minimum_stop_distance", 0.0))
+    if not 0.0 <= minimum_stop_distance < 1.0:
+        raise ValueError("risk.minimum_stop_distance 必须在 0（含）到 1（不含）之间")
     strategy_tag = str(_required(_required(raw, "execution"), "strategy_tag")).strip()
     if not strategy_tag:
         raise ValueError("execution.strategy_tag 不能为空")
@@ -172,10 +198,10 @@ def load_config(path: str | Path) -> AppConfig:
 
     return AppConfig(
         path=config_path,
-        project=raw.get("project", {}),
+        project=project,
         universe=universe,
         strategy=strategy,
-        risk=_required(raw, "risk"),
+        risk=risk,
         execution=_required(raw, "execution"),
         qmt=_required(raw, "qmt"),
         llm=llm,

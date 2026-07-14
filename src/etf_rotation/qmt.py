@@ -46,7 +46,14 @@ def build_order_plan(
         current = int(current_positions.get(symbol, 0))
         target = int(desired.get(symbol, 0))
         delta = target - current
-        if abs(delta * price) / max(total_asset, 1e-12) < min_weight_change:
+        # The no-trade band applies only to resizing an existing position.
+        # New entries and complete exits are discrete signal/risk changes and
+        # must never be suppressed merely because the position is small.
+        if (
+            current > 0
+            and target > 0
+            and abs(delta * price) / max(total_asset, 1e-12) < min_weight_change
+        ):
             continue
         if delta < 0:
             sellable = current if sellable_positions is None else int(sellable_positions.get(symbol, 0))

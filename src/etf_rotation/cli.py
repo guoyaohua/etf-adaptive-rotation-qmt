@@ -39,6 +39,7 @@ from .runtime import (
 )
 from .schedule import scheduled_dates
 from .strategy import RegimeRotationStrategy, TargetPortfolio
+from .version import STRATEGY_VERSION
 
 
 def _store(config: AppConfig) -> CsvMarketDataStore:
@@ -60,6 +61,7 @@ def _latest_common_date(data: dict[str, pd.DataFrame]) -> pd.Timestamp:
 
 def _target_payload(target: TargetPortfolio) -> dict:
     return {
+        "strategy_version": STRATEGY_VERSION,
         "decision_date": target.decision_date.isoformat(),
         "regime": target.regime,
         "weights": target.weights,
@@ -383,6 +385,20 @@ def _risk_scale_from_ledger(config: AppConfig, ledger: dict, equity: float) -> f
     return 1.0
 
 
+def _exclude_latched_risk_exits(
+    target: TargetPortfolio, risk_exits: dict[str, str]
+) -> TargetPortfolio:
+    if not risk_exits:
+        return target
+    return TargetPortfolio(
+        target.decision_date,
+        target.regime,
+        {symbol: weight for symbol, weight in target.weights.items() if symbol not in risk_exits},
+        target.signals,
+        {**target.diagnostics, "live_risk_exits": dict(risk_exits)},
+    )
+
+
 def command_live_once(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     if args.execute and args.ignore_session:
@@ -429,6 +445,15 @@ def _run_live_once_locked(
         strategy_positions = ledger_quantities(ledger)
         _, _, _, _, valuation_prices = broker.snapshot(strategy_positions)
         equity = ledger_equity(ledger, valuation_prices)
+        trade_date = now_shanghai().date().isoformat()
+        ledger = update_monitor_heartbeat(ledger, trade_date, equity)
+        ledger, risk_exits, equity = evaluate_live_risk(ledger, valuation_prices, config.risk, trade_date)
+        atomic_write_json(ledger_path, ledger)
+        if risk_exits:
+            # A weekly target must not reopen a symbol whose protective exit is
+            # already latched.  Full target exits bypass the no-trade band, so
+            # the resulting plan prioritizes the same risk action as monitor.
+            target = _exclude_latched_risk_exits(target, risk_exits)
         capital = min(requested_capital, equity)
         risk_scale = _risk_scale_from_ledger(config, ledger, equity)
         if risk_scale < 1.0:
@@ -634,6 +659,9 @@ def _run_live_monitor_locked(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="ETF Adaptive Rotation for QMT")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {STRATEGY_VERSION}"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     download = subparsers.add_parser("download", help="从本机 QMT 下载日线")

@@ -10,6 +10,39 @@ def test_load_config(config_path):
     config = load_config(config_path)
     assert config.symbols == ["GROWTH.SH", "ALT.SH", "BOND.SH"]
     assert config.strategy["max_gross_exposure"] <= 1
+    assert config.project["strategy_version"] == "0.3.0"
+
+
+def test_config_rejects_strategy_version_drift(config_path):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw["project"]["strategy_version"] = "9.9.9"
+    config_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="strategy_version"):
+        load_config(config_path)
+
+
+@pytest.mark.parametrize(
+    ("section", "key", "value", "message"),
+    [
+        ("strategy", "score_volatility_exponent", -0.1, "score_volatility_exponent"),
+        ("strategy", "idle_cash_proxy_max_weight", 1.1, "idle_cash_proxy_max_weight"),
+        ("risk", "minimum_stop_distance", 1.0, "minimum_stop_distance"),
+    ],
+)
+def test_new_strategy_parameters_reject_invalid_ranges(
+    config_path, section, key, value, message
+):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw[section][key] = value
+    config_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match=message):
+        load_config(config_path)
 
 
 def test_local_config_extends_and_deep_merges(config_path, tmp_path):
@@ -90,6 +123,53 @@ def test_csv_iso_dates_are_normalized():
     )
     normalized = normalize_daily_frame(frame)
     assert normalized.index[0] == pd.Timestamp("2025-01-02")
+
+
+def test_integer_etf_share_split_is_continuity_adjusted():
+    frame = pd.DataFrame(
+        {
+            "open": [5.00, 5.10, 1.01, 1.02],
+            "high": [5.10, 5.20, 1.02, 1.03],
+            "low": [4.90, 5.00, 1.00, 1.01],
+            "close": [5.05, 5.15, 1.015, 1.025],
+            "volume": [100.0, 120.0, 600.0, 500.0],
+            "amount": [505.0, 618.0, 609.0, 512.5],
+        },
+        index=pd.to_datetime(["2022-01-11", "2022-01-12", "2022-01-14", "2022-01-17"]),
+    )
+
+    normalized = normalize_daily_frame(frame)
+
+    assert normalized.loc["2022-01-12", "close"] == pytest.approx(1.03)
+    assert normalized.loc["2022-01-12", "volume"] == pytest.approx(600.0)
+    assert normalized.loc["2022-01-12", "amount"] == pytest.approx(618.0)
+    assert normalized.attrs["share_split_adjustments"] == [
+        {
+            "date": "2022-01-14",
+            "kind": "split",
+            "factor": 5.0,
+            "observed_ratio": pytest.approx(5.15 / 1.01),
+        }
+    ]
+
+
+def test_normal_market_gap_is_not_share_split_adjusted():
+    frame = pd.DataFrame(
+        {
+            "open": [1.00, 0.90],
+            "high": [1.02, 0.93],
+            "low": [0.99, 0.89],
+            "close": [1.00, 0.92],
+            "volume": [100.0, 120.0],
+            "amount": [100.0, 110.4],
+        },
+        index=pd.to_datetime(["2025-04-04", "2025-04-07"]),
+    )
+
+    normalized = normalize_daily_frame(frame)
+
+    assert normalized.loc["2025-04-04", "close"] == pytest.approx(1.00)
+    assert normalized.attrs["share_split_adjustments"] == []
 
 
 def test_latest_common_date_requires_every_loaded_symbol():

@@ -37,6 +37,7 @@ class Backtester:
             risk["initial_stop_atr"],
             risk["trailing_activation_atr"],
             risk["trailing_stop_atr"],
+            risk.get("minimum_stop_distance", 0.0),
         )
         self.cost_multiplier = float(cost_multiplier)
 
@@ -130,6 +131,30 @@ class Backtester:
                     risk_controller.state.liquidate_next_open = True
                 pending_target = None
 
+            # Opening gaps are observable before the scheduled rebalance.  A
+            # position that has already crossed its stop must be exited before
+            # any target increase is applied, and it must not be bought back at
+            # the same opening print.  The old order (rebalance first, stop
+            # second) could add to a losing position and immediately liquidate
+            # the enlarged quantity at that identical open, an impossible and
+            # cost-distorting path.
+            opening_stop_symbols: set[str] = set()
+            if not force_liquidate:
+                for symbol in sorted(list(positions)):
+                    row = bars.get(symbol)
+                    state = position_risk.get(symbol)
+                    if row is None or state is None:
+                        continue
+                    day_open = float(row["open"])
+                    if day_open > self.stop_engine.stop_price(state):
+                        continue
+                    fill = self.cost_model.fill(symbol, "SELL", positions[symbol], day_open, "gap_stop")
+                    cash += fill.notional - fill.commission
+                    self._record_fill(fills, date, fill)
+                    positions.pop(symbol, None)
+                    position_risk.pop(symbol, None)
+                    opening_stop_symbols.add(symbol)
+
             # Rebalance at the next available open after a completed decision day.
             if pending_target is not None and not force_liquidate:
                 equity_at_open = self._mark_value(cash, positions, {**latest_close, **open_prices})
@@ -172,6 +197,8 @@ class Backtester:
                 for symbol in sorted(all_symbols):
                     if block_new_buys:
                         break
+                    if symbol in opening_stop_symbols:
+                        continue
                     current = positions.get(symbol, 0)
                     target = desired.get(symbol, 0)
                     delta = target - current
@@ -202,7 +229,8 @@ class Backtester:
                             position_risk[symbol] = PositionRiskState(average, previous.atr_at_entry, max(previous.high_watermark, fill.fill_price))
                 pending_target = None
 
-            # Conservative daily OHLC stop model: gap first, otherwise stop price.
+            # Opening gaps were handled before rebalancing.  The remaining OHLC
+            # check models an intraday touch at the stop price.
             for symbol in sorted(list(positions)):
                 row = bars.get(symbol)
                 state = position_risk.get(symbol)

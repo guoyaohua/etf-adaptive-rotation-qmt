@@ -1,5 +1,6 @@
 project:
   name: "ETF Adaptive Rotation for QMT"
+  strategy_version: "0.3.0"
   timezone: "Asia/Shanghai"
 
 universe:
@@ -41,12 +42,15 @@ strategy:
   risk_on_median_momentum: 0.00
   min_weighted_momentum: 0.00
   score_volatility_floor: 0.10
+  score_volatility_exponent: 0.75 # 排名保留波动惩罚，但避免与逆波动率仓位重复全额惩罚
   selection_count: 3
   defensive_selection_count: 2
   target_annual_volatility: 0.10
   max_asset_weight: 0.40
   max_defensive_weight: 0.40
   max_gross_exposure: 0.90
+  idle_cash_proxy_group: "treasury" # 仅在国债长期趋势与动量为正时承接部分闲置风险预算
+  idle_cash_proxy_max_weight: 0.30
   min_weight_change: 0.01
 
 risk:
@@ -59,6 +63,7 @@ risk:
   initial_stop_atr: 2.50
   trailing_activation_atr: 1.50
   trailing_stop_atr: 3.00
+  minimum_stop_distance: 0.015    # ATR 过小时至少保留 1.5% 距离，减少低波资产噪声止损
 
 execution:
   initial_capital: 1000000

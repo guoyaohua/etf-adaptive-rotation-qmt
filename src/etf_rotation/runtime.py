@@ -512,10 +512,12 @@ def evaluate_live_risk(
             raise ValueError(f"持仓 {symbol} 的数量/价格/成本/ATR 状态无效")
         high = max(float(raw.get("high_watermark", entry)), price)
         raw["high_watermark"] = high
-        initial_stop = entry - float(risk["initial_stop_atr"]) * atr_value
+        minimum_distance = float(risk.get("minimum_stop_distance", 0.0)) * entry
+        initial_stop = entry - max(float(risk["initial_stop_atr"]) * atr_value, minimum_distance)
         stop = initial_stop
         if high - entry >= float(risk["trailing_activation_atr"]) * atr_value:
-            stop = max(stop, high - float(risk["trailing_stop_atr"]) * atr_value)
+            trailing_distance = max(float(risk["trailing_stop_atr"]) * atr_value, minimum_distance)
+            stop = max(stop, high - trailing_distance)
         raw["active_stop"] = stop
         if price <= stop:
             exits[symbol] = "trailing_stop" if stop > initial_stop else "initial_stop"

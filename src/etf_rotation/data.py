@@ -9,6 +9,74 @@ import numpy as np
 import pandas as pd
 
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume", "amount")
+PRICE_COLUMNS = ("open", "high", "low", "close")
+
+
+def adjust_integer_share_splits(
+    frame: pd.DataFrame,
+    *,
+    minimum_factor: int = 2,
+    ratio_tolerance: float = 0.08,
+) -> pd.DataFrame:
+    """Back-adjust unambiguous ETF share splits missing from QMT factors.
+
+    QMT's ``front_ratio`` data does not always include ETF share consolidations
+    and splits.  A 5-for-1 split would otherwise look like an 80% overnight
+    loss and contaminate momentum, volatility and ATR for months.  Only gaps
+    close to an integer factor are adjusted; ordinary market gaps are left
+    untouched.  Prices remain on the latest share-unit scale, volume is
+    converted to the same unit, and turnover amount is unchanged.
+    """
+    result = frame.copy()
+    if len(result) < 2:
+        result.attrs["share_split_adjustments"] = []
+        return result
+
+    previous_close = result["close"].shift(1)
+    current_open = result["open"]
+    adjustments: list[dict[str, float | str]] = []
+
+    for date in result.index[1:]:
+        before = float(previous_close.loc[date])
+        after = float(current_open.loc[date])
+        if not np.isfinite(before) or not np.isfinite(after) or before <= 0 or after <= 0:
+            continue
+
+        split_ratio = before / after
+        consolidation_ratio = after / before
+        if split_ratio >= minimum_factor - ratio_tolerance:
+            factor = int(round(split_ratio))
+            relative_error = abs(split_ratio / factor - 1.0) if factor >= minimum_factor else np.inf
+            kind = "split"
+        elif consolidation_ratio >= minimum_factor - ratio_tolerance:
+            factor = int(round(consolidation_ratio))
+            relative_error = (
+                abs(consolidation_ratio / factor - 1.0) if factor >= minimum_factor else np.inf
+            )
+            kind = "consolidation"
+        else:
+            continue
+        if relative_error > ratio_tolerance:
+            continue
+
+        historical = result.index < date
+        if kind == "split":
+            result.loc[historical, PRICE_COLUMNS] /= factor
+            result.loc[historical, "volume"] *= factor
+        else:
+            result.loc[historical, PRICE_COLUMNS] *= factor
+            result.loc[historical, "volume"] /= factor
+        adjustments.append(
+            {
+                "date": pd.Timestamp(date).date().isoformat(),
+                "kind": kind,
+                "factor": float(factor),
+                "observed_ratio": float(split_ratio if kind == "split" else consolidation_ratio),
+            }
+        )
+
+    result.attrs["share_split_adjustments"] = adjustments
+    return result
 
 
 def normalize_daily_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -32,7 +100,8 @@ def normalize_daily_frame(frame: pd.DataFrame) -> pd.DataFrame:
         result.loc[result[column] <= 0, column] = np.nan
     result.loc[result["volume"] < 0, "volume"] = np.nan
     result.loc[result["amount"] < 0, "amount"] = np.nan
-    return result.dropna(subset=["open", "high", "low", "close"])
+    result = result.dropna(subset=["open", "high", "low", "close"])
+    return adjust_integer_share_splits(result)
 
 
 def align_market_data(data: Mapping[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:

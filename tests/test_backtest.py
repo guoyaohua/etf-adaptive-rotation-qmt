@@ -54,3 +54,21 @@ def test_missing_quote_does_not_break_backtest(config, trending_data):
     trending_data["GROWTH.SH"] = trending_data["GROWTH.SH"].drop(index=date)
     result = Backtester(config).run(trending_data)
     assert result.metrics["valid"]
+
+
+def test_opening_gap_stop_precedes_rebalance_and_blocks_same_open_reentry(config, trending_data):
+    data = {symbol: frame.copy() for symbol, frame in trending_data.items()}
+    dates = data["GROWTH.SH"].index
+    gap_date = next(date for date in dates[180:] if date.weekday() == 0)
+    previous_close = float(data["GROWTH.SH"].loc[:gap_date, "close"].iloc[-2])
+    gap_open = previous_close * 0.50
+    data["GROWTH.SH"].loc[gap_date, "open"] = gap_open
+    data["GROWTH.SH"].loc[gap_date, "low"] = gap_open * 0.99
+
+    result = Backtester(config).run(data)
+    day_fills = result.fills[
+        (result.fills["date"] == gap_date) & (result.fills["symbol"] == "GROWTH.SH")
+    ]
+
+    assert (day_fills["reason"] == "gap_stop").any()
+    assert not (day_fills["side"] == "BUY").any()
