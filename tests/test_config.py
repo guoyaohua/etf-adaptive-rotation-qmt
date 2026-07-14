@@ -10,7 +10,7 @@ def test_load_config(config_path):
     config = load_config(config_path)
     assert config.symbols == ["GROWTH.SH", "ALT.SH", "BOND.SH"]
     assert config.strategy["max_gross_exposure"] <= 1
-    assert config.project["strategy_version"] == "0.5.0"
+    assert config.project["strategy_version"] == "0.5.1"
 
 
 def test_config_rejects_strategy_version_drift(config_path):

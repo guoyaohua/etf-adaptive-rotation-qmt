@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "etf-adaptive-rotation-qmt"
-version = "0.5.0"
-description = "Adaptive T+0 ETF rotation and risk-control strategy for QMT"
+version = "0.5.1"
+description = "面向 QMT/xtquant 的 ETF 自适应轮动、稳健性回测与受保护实盘系统"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

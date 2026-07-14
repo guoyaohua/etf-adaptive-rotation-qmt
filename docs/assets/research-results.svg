@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">v0.5.0 经审计研究结果</title>
+  <desc id="desc">基础成本年化收益百分之 5.83，累计收益百分之 91.96，最大回撤百分之 6.46，夏普比率 1.004。双倍和三倍成本年化收益仍为正，十个滚动三年窗口全部盈利。</desc>
+  <defs>
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,&quot;Noto Sans CJK SC&quot;,sans-serif}.title{font-size:28px;font-weight:700;fill:#0f172a}.sub{font-size:15px;fill:#475569}.card{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}.label{font-size:14px;fill:#64748b}.value{font-size:32px;font-weight:700;fill:#0f172a}.good{fill:#ecfdf5;stroke:#a7f3d0}.good-title{font-size:18px;font-weight:700;fill:#065f46}.good-copy{font-size:14px;fill:#047857}.bar{fill:#2563eb}.bar2{fill:#60a5fa}.axis{stroke:#cbd5e1}.bar-label{font-size:15px;font-weight:700;fill:#334155}.bar-value{font-size:16px;font-weight:700;fill:#0f172a}.note{font-size:13px;fill:#64748b}
+    </style>
+  </defs>
+  <rect width="1200" height="500" rx="24" fill="#f8fafc"/>
+  <text x="54" y="58" class="title">v0.5.0：收益提升，但仍按真实成本和回撤审视</text>
+  <text x="54" y="88" class="sub">2015-01-05 至 2026-07-10 · 初始权益 100 万元 · 纯量化历史研究</text>
+  <g transform="translate(54 120)">
+    <rect width="235" height="115" rx="16" class="card"/><text x="22" y="34" class="label">CAGR</text><text x="22" y="82" class="value">5.83%</text>
+    <rect x="255" width="235" height="115" rx="16" class="card"/><text x="277" y="34" class="label">累计收益</text><text x="277" y="82" class="value">91.96%</text>
+    <rect x="510" width="235" height="115" rx="16" class="card"/><text x="532" y="34" class="label">最大回撤</text><text x="532" y="82" class="value">6.46%</text>
+    <rect x="765" width="235" height="115" rx="16" class="card"/><text x="787" y="34" class="label">Sharpe</text><text x="787" y="82" class="value">1.004</text>
+  </g>
+  <g transform="translate(54 274)">
+    <text x="0" y="0" class="bar-label">成本压力下的 CAGR</text><line x1="0" y1="162" x2="680" y2="162" class="axis"/>
+    <rect x="50" y="26" width="120" height="136" rx="9" class="bar"/><text x="110" y="18" text-anchor="middle" class="bar-value">5.83%</text><text x="110" y="187" text-anchor="middle" class="bar-label">基础</text>
+    <rect x="245" y="47" width="120" height="115" rx="9" class="bar2"/><text x="305" y="39" text-anchor="middle" class="bar-value">4.92%</text><text x="305" y="187" text-anchor="middle" class="bar-label">2× 成本</text>
+    <rect x="440" y="69" width="120" height="93" rx="9" class="bar2"/><text x="500" y="61" text-anchor="middle" class="bar-value">3.97%</text><text x="500" y="187" text-anchor="middle" class="bar-label">3× 成本</text>
+  </g>
+  <g transform="translate(760 292)"><rect width="386" height="144" rx="16" class="good"/><text x="24" y="40" class="good-title">滚动窗口：10 / 10 为正</text><text x="24" y="72" class="good-copy">最差三年 CAGR：2.36%</text><text x="24" y="101" class="good-copy">前缀不变性：通过</text><text x="24" y="126" class="note">历史研究不代表未来收益</text></g>
+</svg>

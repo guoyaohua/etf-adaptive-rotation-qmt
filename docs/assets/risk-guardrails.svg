@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">四层风险防线</title>
+  <desc id="desc">策略依次通过标的层、仓位层、组合层和执行层控制风险；任何关键校验失败都会缩仓、清仓、冷却或拒绝下单。</desc>
+  <defs>
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,&quot;Noto Sans CJK SC&quot;,sans-serif}
+      .title{font-size:28px;font-weight:700;fill:#0F172A}.subtitle{font-size:15px;fill:#475569}.card{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.5}.card-title{font-size:20px;font-weight:700;fill:#0F172A}.number{font-size:15px;font-weight:700;fill:#FFFFFF}.item{font-size:15px;fill:#334155}.value{font-size:14px;font-weight:700;fill:#1D4ED8}.note{font-size:13px;fill:#64748B}.failure{fill:#FFF7ED;stroke:#FED7AA}.failure-title{font-size:16px;font-weight:700;fill:#9A3412}.failure-copy{font-size:14px;fill:#C2410C}
+    </style>
+  </defs>
+
+  <rect width="1200" height="600" rx="24" fill="#F8FAFC"/>
+  <text x="54" y="58" class="title">收益靠信号争取，生存靠四层风控守住</text>
+  <text x="54" y="88" class="subtitle">上限不是收益目标；触发保护后，策略会减少风险，而不是机械补仓</text>
+
+  <g transform="translate(54 126)">
+    <rect width="258" height="334" rx="18" class="card"/>
+    <circle cx="34" cy="34" r="18" fill="#2563EB"/><text x="34" y="39" text-anchor="middle" class="number">1</text>
+    <text x="64" y="41" class="card-title">标的层</text>
+    <text x="22" y="86" class="item">只交易明确的 T+0 白名单</text>
+    <text x="22" y="120" class="item">历史、价格、流动性门槛</text>
+    <text x="22" y="154" class="item">趋势与正动量过滤</text>
+    <text x="22" y="188" class="item">风险组与相关性去重</text>
+    <line x1="22" y1="216" x2="236" y2="216" stroke="#E2E8F0"/>
+    <text x="22" y="247" class="value">最多 3 只主资产</text>
+    <text x="22" y="276" class="value">相关系数 ≤ 0.85</text>
+    <text x="22" y="308" class="note">不合格资产直接留在现金</text>
+  </g>
+
+  <g transform="translate(334 126)">
+    <rect width="258" height="334" rx="18" class="card"/>
+    <circle cx="34" cy="34" r="18" fill="#2563EB"/><text x="34" y="39" text-anchor="middle" class="number">2</text>
+    <text x="64" y="41" class="card-title">仓位层</text>
+    <text x="22" y="86" class="item">逆波动率分配</text>
+    <text x="22" y="120" class="item">目标波动率缩放</text>
+    <text x="22" y="154" class="item">单资产与总仓位封顶</text>
+    <text x="22" y="188" class="item">至少保留部分现金</text>
+    <line x1="22" y1="216" x2="236" y2="216" stroke="#E2E8F0"/>
+    <text x="22" y="247" class="value">目标波动率 10%</text>
+    <text x="22" y="276" class="value">单资产 ≤ 40%</text>
+    <text x="22" y="305" class="value">总仓位 ≤ 90%</text>
+  </g>
+
+  <g transform="translate(614 126)">
+    <rect width="258" height="334" rx="18" class="card"/>
+    <circle cx="34" cy="34" r="18" fill="#2563EB"/><text x="34" y="39" text-anchor="middle" class="number">3</text>
+    <text x="64" y="41" class="card-title">组合层</text>
+    <text x="22" y="86" class="item">ATR 初始与跟踪止损</text>
+    <text x="22" y="120" class="item">软回撤：整体减半</text>
+    <text x="22" y="154" class="item">硬回撤：清仓并冷却</text>
+    <text x="22" y="188" class="item">单日亏损：快速退出</text>
+    <line x1="22" y1="216" x2="236" y2="216" stroke="#E2E8F0"/>
+    <text x="22" y="247" class="value">软回撤 8% → 风险 × 50%</text>
+    <text x="22" y="276" class="value">硬回撤 12% → 冷却 10 日</text>
+    <text x="22" y="305" class="value">单日亏损 2% → 冷却 5 日</text>
+  </g>
+
+  <g transform="translate(894 126)">
+    <rect width="252" height="334" rx="18" class="card"/>
+    <circle cx="34" cy="34" r="18" fill="#2563EB"/><text x="34" y="39" text-anchor="middle" class="number">4</text>
+    <text x="64" y="41" class="card-title">执行层</text>
+    <text x="22" y="86" class="item">实时行情新鲜度检查</text>
+    <text x="22" y="120" class="item">账本与账户一致性</text>
+    <text x="22" y="154" class="item">在途单与重复计划锁</text>
+    <text x="22" y="188" class="item">配置 + 命令 + 人工确认</text>
+    <line x1="22" y1="216" x2="230" y2="216" stroke="#E2E8F0"/>
+    <text x="22" y="247" class="value">默认不下单</text>
+    <text x="22" y="276" class="value">先卖后买</text>
+    <text x="22" y="305" class="value">成交 ID 幂等对账</text>
+  </g>
+
+  <g transform="translate(54 492)">
+    <rect width="1092" height="66" rx="15" class="failure"/>
+    <path d="M35 15 55 51H15Z" fill="#EA580C"/><text x="35" y="43" text-anchor="middle" font-size="20" font-weight="700" fill="#FFFFFF">!</text>
+    <text x="76" y="28" class="failure-title">失败关闭</text>
+    <text x="76" y="49" class="failure-copy">行情缺失、日历异常、账本冲突或实盘条件不完整时，拒绝继续生成信号或提交订单</text>
+  </g>
+</svg>

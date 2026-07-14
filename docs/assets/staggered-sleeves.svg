@@ -1,15 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
-  <title id="title">Four staggered four-week sleeves</title>
-  <desc id="desc">The portfolio is divided into four equal sleeves. One sleeve receives a new signal every Friday, so each sleeve holds its signal for about four weeks while their average becomes the portfolio target.</desc>
-  <defs><linearGradient id="bg" x1="0" x2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#17233b"/></linearGradient><style>.h{font:700 24px system-ui;fill:#f8fafc}.t{font:600 16px system-ui;fill:#e2e8f0}.s{font:400 13px system-ui;fill:#94a3b8}.g{stroke:#475569;stroke-width:1}.active{fill:#0ea5e9}.hold{fill:#164e63}.target{fill:#7c3aed}.box{fill:#1e293b;stroke:#475569;rx:13}</style></defs>
-  <rect width="1200" height="360" rx="24" fill="url(#bg)"/>
-  <text x="50" y="50" class="h">Staggered sleeves reduce rebalance-date dependence</text>
-  <g transform="translate(190 83)">
-    <text x="70" y="0" class="t">Week 1</text><text x="270" y="0" class="t">Week 2</text><text x="470" y="0" class="t">Week 3</text><text x="670" y="0" class="t">Week 4</text><text x="870" y="0" class="t">Week 5</text>
-    <g transform="translate(0 25)"><text x="-135" y="28" class="t">Sleeve A · 25%</text><rect class="active" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="active" x="800" width="170" height="44" rx="10"/></g>
-    <g transform="translate(0 82)"><text x="-135" y="28" class="t">Sleeve B · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="active" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
-    <g transform="translate(0 139)"><text x="-135" y="28" class="t">Sleeve C · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="active" x="400" width="170" height="44" rx="10"/><rect class="hold" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
-    <g transform="translate(0 196)"><text x="-135" y="28" class="t">Sleeve D · 25%</text><rect class="hold" width="170" height="44" rx="10"/><rect class="hold" x="200" width="170" height="44" rx="10"/><rect class="hold" x="400" width="170" height="44" rx="10"/><rect class="active" x="600" width="170" height="44" rx="10"/><rect class="hold" x="800" width="170" height="44" rx="10"/></g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">四个错峰四周子组合</title>
+  <desc id="desc">完整组合分为 A、B、C、D 四个各占百分之二十五的子组合。每周只更新一个子组合；到第五周重新更新 A，因此单份信号约持有四周，完整目标是四份信号的平均。</desc>
+  <defs>
+    <pattern id="hold-pattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#F1F5F9"/><line y2="8" stroke="#CBD5E1" stroke-width="2"/>
+    </pattern>
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,&quot;Noto Sans CJK SC&quot;,sans-serif}
+      .title{font-size:28px;font-weight:700;fill:#0F172A}.subtitle{font-size:15px;fill:#475569}.week{font-size:15px;font-weight:700;fill:#334155}.sleeve{font-size:16px;font-weight:700;fill:#0F172A}.share{font-size:13px;fill:#64748B}
+      .hold{fill:url(#hold-pattern);stroke:#CBD5E1}.refresh{fill:#2563EB;stroke:#1D4ED8}.refresh-text{font-size:14px;font-weight:700;fill:#FFFFFF}.hold-text{font-size:14px;font-weight:600;fill:#475569}.axis{stroke:#CBD5E1;stroke-width:1}.legend{font-size:14px;fill:#475569}
+      .result{fill:#ECFDF5;stroke:#A7F3D0}.result-title{font-size:17px;font-weight:700;fill:#065F46}.result-copy{font-size:14px;fill:#047857}
+    </style>
+  </defs>
+
+  <rect width="1200" height="560" rx="24" fill="#F8FAFC"/>
+  <text x="54" y="58" class="title">每周动四分之一，单份信号约持有四周</text>
+  <text x="54" y="88" class="subtitle">错峰调仓降低“刚好选中某个调仓日”的偶然影响，也减少全仓同时换手</text>
+
+  <g transform="translate(54 128)">
+    <line x1="160" y1="38" x2="1092" y2="38" class="axis"/>
+    <text x="250" y="18" text-anchor="middle" class="week">第 1 周</text>
+    <text x="444" y="18" text-anchor="middle" class="week">第 2 周</text>
+    <text x="638" y="18" text-anchor="middle" class="week">第 3 周</text>
+    <text x="832" y="18" text-anchor="middle" class="week">第 4 周</text>
+    <text x="1026" y="18" text-anchor="middle" class="week">第 5 周</text>
+
+    <g transform="translate(0 58)">
+      <circle cx="20" cy="28" r="20" fill="#DBEAFE"/><text x="20" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1D4ED8">A</text>
+      <text x="52" y="24" class="sleeve">子组合 A</text><text x="52" y="44" class="share">组合的 25%</text>
+      <rect x="166" width="168" height="56" rx="10" class="refresh"/><text x="250" y="34" text-anchor="middle" class="refresh-text">生成新目标</text>
+      <rect x="360" width="168" height="56" rx="10" class="hold"/><text x="444" y="34" text-anchor="middle" class="hold-text">沿用 A₁</text>
+      <rect x="554" width="168" height="56" rx="10" class="hold"/><text x="638" y="34" text-anchor="middle" class="hold-text">沿用 A₁</text>
+      <rect x="748" width="168" height="56" rx="10" class="hold"/><text x="832" y="34" text-anchor="middle" class="hold-text">沿用 A₁</text>
+      <rect x="942" width="168" height="56" rx="10" class="refresh"/><text x="1026" y="34" text-anchor="middle" class="refresh-text">更新为 A₂</text>
+    </g>
+
+    <g transform="translate(0 126)">
+      <circle cx="20" cy="28" r="20" fill="#DBEAFE"/><text x="20" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1D4ED8">B</text>
+      <text x="52" y="24" class="sleeve">子组合 B</text><text x="52" y="44" class="share">组合的 25%</text>
+      <rect x="166" width="168" height="56" rx="10" class="hold"/><text x="250" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="360" width="168" height="56" rx="10" class="refresh"/><text x="444" y="34" text-anchor="middle" class="refresh-text">生成新目标</text>
+      <rect x="554" width="168" height="56" rx="10" class="hold"/><text x="638" y="34" text-anchor="middle" class="hold-text">沿用 B₁</text>
+      <rect x="748" width="168" height="56" rx="10" class="hold"/><text x="832" y="34" text-anchor="middle" class="hold-text">沿用 B₁</text>
+      <rect x="942" width="168" height="56" rx="10" class="hold"/><text x="1026" y="34" text-anchor="middle" class="hold-text">沿用 B₁</text>
+    </g>
+
+    <g transform="translate(0 194)">
+      <circle cx="20" cy="28" r="20" fill="#DBEAFE"/><text x="20" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1D4ED8">C</text>
+      <text x="52" y="24" class="sleeve">子组合 C</text><text x="52" y="44" class="share">组合的 25%</text>
+      <rect x="166" width="168" height="56" rx="10" class="hold"/><text x="250" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="360" width="168" height="56" rx="10" class="hold"/><text x="444" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="554" width="168" height="56" rx="10" class="refresh"/><text x="638" y="34" text-anchor="middle" class="refresh-text">生成新目标</text>
+      <rect x="748" width="168" height="56" rx="10" class="hold"/><text x="832" y="34" text-anchor="middle" class="hold-text">沿用 C₁</text>
+      <rect x="942" width="168" height="56" rx="10" class="hold"/><text x="1026" y="34" text-anchor="middle" class="hold-text">沿用 C₁</text>
+    </g>
+
+    <g transform="translate(0 262)">
+      <circle cx="20" cy="28" r="20" fill="#DBEAFE"/><text x="20" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1D4ED8">D</text>
+      <text x="52" y="24" class="sleeve">子组合 D</text><text x="52" y="44" class="share">组合的 25%</text>
+      <rect x="166" width="168" height="56" rx="10" class="hold"/><text x="250" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="360" width="168" height="56" rx="10" class="hold"/><text x="444" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="554" width="168" height="56" rx="10" class="hold"/><text x="638" y="34" text-anchor="middle" class="hold-text">等待轮到</text>
+      <rect x="748" width="168" height="56" rx="10" class="refresh"/><text x="832" y="34" text-anchor="middle" class="refresh-text">生成新目标</text>
+      <rect x="942" width="168" height="56" rx="10" class="hold"/><text x="1026" y="34" text-anchor="middle" class="hold-text">沿用 D₁</text>
+    </g>
   </g>
-  <rect x="50" y="320" width="15" height="15" rx="3" class="active"/><text x="75" y="333" class="s">refresh this sleeve</text><rect x="240" y="320" width="15" height="15" rx="3" class="hold"/><text x="265" y="333" class="s">keep previous sleeve target</text><text x="965" y="333" class="t">Portfolio = average(A, B, C, D)</text>
+
+  <g transform="translate(54 478)">
+    <rect width="1092" height="52" rx="14" class="result"/>
+    <text x="24" y="32" class="result-title">完整组合目标</text>
+    <text x="171" y="32" class="result-copy">= 25% × A + 25% × B + 25% × C + 25% × D</text>
+    <rect x="753" y="16" width="20" height="20" rx="4" class="refresh"/><text x="783" y="31" class="legend">本周更新</text>
+    <rect x="894" y="16" width="20" height="20" rx="4" class="hold"/><text x="924" y="31" class="legend">沿用 / 等待</text>
+  </g>
 </svg>

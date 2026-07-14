@@ -1,33 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
-  <title id="title">ETF Adaptive Rotation strategy flow</title>
-  <desc id="desc">Daily QMT market data passes through liquidity, trend and momentum filters, then correlation constrained selection, staggered sleeves, volatility sizing and risk controls to produce a next-session order plan.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">ETF 自适应轮动策略流程</title>
+  <desc id="desc">已完成的 QMT 日线与上交所交易日历经过数据边界检查、趋势动量筛选、风险预算和四子组合聚合，最终形成下一交易日的受保护订单计划。</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#17233b"/></linearGradient>
-    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1e3a5f"/><stop offset="1" stop-color="#235b72"/></linearGradient>
-    <linearGradient id="risk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4a2b4e"/><stop offset="1" stop-color="#71394f"/></linearGradient>
-    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#7dd3fc"/></marker>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#2563EB"/>
+    </marker>
     <style>
-      .h{font:700 24px system-ui,-apple-system,Segoe UI,sans-serif;fill:#f8fafc}.t{font:600 17px system-ui,-apple-system,Segoe UI,sans-serif;fill:#f8fafc}.s{font:400 13px system-ui,-apple-system,Segoe UI,sans-serif;fill:#cbd5e1}.n{fill:url(#node);stroke:#38bdf8;stroke-width:1.5;rx:16;filter:url(#shadow)}.r{fill:url(#risk);stroke:#fb7185;stroke-width:1.5;rx:16;filter:url(#shadow)}.a{fill:none;stroke:#7dd3fc;stroke-width:2.2;marker-end:url(#arrow)}
+      text{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;Microsoft YaHei&quot;,&quot;Noto Sans CJK SC&quot;,sans-serif}
+      .title{font-size:28px;font-weight:700;fill:#0F172A}.subtitle{font-size:15px;fill:#475569}
+      .stage{fill:#FFFFFF;stroke:#CBD5E1;stroke-width:1.5}.stage-title{font-size:21px;font-weight:700;fill:#0F172A}.stage-copy{font-size:15px;fill:#475569}
+      .step{font-size:14px;font-weight:700;fill:#FFFFFF}.chip{fill:#EFF6FF}.chip-text{font-size:14px;font-weight:600;fill:#1E3A8A}
+      .arrow{fill:none;stroke:#2563EB;stroke-width:2;marker-end:url(#arrow)}.guard{fill:#ECFDF5;stroke:#A7F3D0}.guard-title{font-size:15px;font-weight:700;fill:#065F46}.guard-copy{font-size:14px;fill:#047857}
+      .timeline{font-size:14px;font-weight:600;fill:#334155}.timeline-note{font-size:13px;fill:#64748B}
     </style>
   </defs>
-  <rect width="1200" height="430" rx="24" fill="url(#bg)"/>
-  <text x="54" y="54" class="h">From completed bars to a controlled portfolio</text>
-  <g transform="translate(45 100)"><rect class="n" width="170" height="105"/><text x="85" y="38" text-anchor="middle" class="t">QMT daily bars</text><text x="85" y="65" text-anchor="middle" class="s">OHLCV · amount</text><text x="85" y="85" text-anchor="middle" class="s">completed sessions only</text></g>
-  <path class="a" d="M215 152h48"/>
-  <g transform="translate(265 100)"><rect class="n" width="190" height="105"/><text x="95" y="33" text-anchor="middle" class="t">Eligibility</text><text x="95" y="60" text-anchor="middle" class="s">price · history · liquidity</text><text x="95" y="82" text-anchor="middle" class="s">T+0 allow-list</text></g>
-  <path class="a" d="M455 152h48"/>
-  <g transform="translate(505 100)"><rect class="n" width="205" height="105"/><text x="102" y="31" text-anchor="middle" class="t">Signal engine</text><text x="102" y="57" text-anchor="middle" class="s">20 / 60 / 120-day momentum</text><text x="102" y="79" text-anchor="middle" class="s">trend + EMA slope</text></g>
-  <path class="a" d="M710 152h48"/>
-  <g transform="translate(760 100)"><rect class="n" width="190" height="105"/><text x="95" y="32" text-anchor="middle" class="t">Selection</text><text x="95" y="59" text-anchor="middle" class="s">risk-adjusted ranking</text><text x="95" y="81" text-anchor="middle" class="s">group + correlation caps</text></g>
-  <path class="a" d="M950 152h48"/>
-  <g transform="translate(1000 100)"><rect class="n" width="155" height="105"/><text x="77" y="32" text-anchor="middle" class="t">4 sleeves</text><text x="77" y="59" text-anchor="middle" class="s">one refreshed</text><text x="77" y="81" text-anchor="middle" class="s">each Friday</text></g>
-  <path class="a" d="M1078 205v46H842v36"/>
-  <g transform="translate(735 287)"><rect class="r" width="215" height="105"/><text x="107" y="30" text-anchor="middle" class="t">Risk controls</text><text x="107" y="56" text-anchor="middle" class="s">ATR stops · drawdown gates</text><text x="107" y="79" text-anchor="middle" class="s">daily loss cooldown</text></g>
-  <path class="a" d="M735 340h-57"/>
-  <g transform="translate(470 287)"><rect class="n" width="205" height="105"/><text x="102" y="30" text-anchor="middle" class="t">Position sizing</text><text x="102" y="56" text-anchor="middle" class="s">inverse volatility</text><text x="102" y="79" text-anchor="middle" class="s">10% vol target · cash reserve</text></g>
-  <path class="a" d="M470 340h-57"/>
-  <g transform="translate(205 287)"><rect class="n" width="205" height="105"/><text x="102" y="30" text-anchor="middle" class="t">Next-session plan</text><text x="102" y="56" text-anchor="middle" class="s">sells before buys</text><text x="102" y="79" text-anchor="middle" class="s">1% no-trade band</text></g>
-  <path class="a" d="M205 340h-52"/>
-  <g transform="translate(45 287)"><rect class="r" width="105" height="105"/><text x="52" y="34" text-anchor="middle" class="t">QMT</text><text x="52" y="61" text-anchor="middle" class="s">dry-run</text><text x="52" y="81" text-anchor="middle" class="s">by default</text></g>
+
+  <rect width="1200" height="600" rx="24" fill="#F8FAFC"/>
+  <text x="54" y="58" class="title">一份周度信号，如何变成下一交易日订单？</text>
+  <text x="54" y="88" class="subtitle">研究、回测、离线信号与 QMT 实盘计划共用同一条决策链</text>
+
+  <g transform="translate(54 126)">
+    <rect class="stage" width="246" height="326" rx="18"/>
+    <circle cx="30" cy="32" r="17" fill="#2563EB"/><text x="30" y="37" text-anchor="middle" class="step">1</text>
+    <text x="58" y="40" class="stage-title">守住数据边界</text>
+    <rect x="22" y="67" width="202" height="48" rx="10" class="chip"/><text x="123" y="96" text-anchor="middle" class="chip-text">QMT 已完成日线</text>
+    <rect x="22" y="126" width="202" height="48" rx="10" class="chip"/><text x="123" y="155" text-anchor="middle" class="chip-text">XSHG 交易日历</text>
+    <text x="22" y="211" class="stage-copy">• 只看决策时已知数据</text>
+    <text x="22" y="241" class="stage-copy">• 行情与会话逐日对齐</text>
+    <text x="22" y="271" class="stage-copy">• 缺失、陈旧、异常即停止</text>
+    <rect x="22" y="290" width="202" height="20" rx="10" fill="#DBEAFE"/>
+    <text x="123" y="305" text-anchor="middle" font-size="12" font-weight="700" fill="#1D4ED8">不把数据缺口当作休市</text>
+  </g>
+
+  <path class="arrow" d="M311 289H337"/>
+
+  <g transform="translate(348 126)">
+    <rect class="stage" width="246" height="326" rx="18"/>
+    <circle cx="30" cy="32" r="17" fill="#2563EB"/><text x="30" y="37" text-anchor="middle" class="step">2</text>
+    <text x="58" y="40" class="stage-title">选出更强资产</text>
+    <rect x="22" y="67" width="202" height="48" rx="10" class="chip"/><text x="123" y="88" text-anchor="middle" class="chip-text">趋势 + EMA 斜率</text><text x="123" y="106" text-anchor="middle" font-size="12" fill="#475569">先判断是否值得参与</text>
+    <rect x="22" y="126" width="202" height="48" rx="10" class="chip"/><text x="123" y="147" text-anchor="middle" class="chip-text">20 / 60 / 120 日动量</text><text x="123" y="165" text-anchor="middle" font-size="12" fill="#475569">跳过最近 5 个交易日</text>
+    <rect x="22" y="185" width="202" height="48" rx="10" class="chip"/><text x="123" y="206" text-anchor="middle" class="chip-text">动量 ÷ 波动率⁰·⁷⁵</text><text x="123" y="224" text-anchor="middle" font-size="12" fill="#475569">强度与风险一起排名</text>
+    <text x="22" y="268" class="stage-copy">相关性与风险组去重</text>
+    <text x="22" y="296" class="stage-copy">每份信号最多 3 只 ETF</text>
+  </g>
+
+  <path class="arrow" d="M605 289H631"/>
+
+  <g transform="translate(642 126)">
+    <rect class="stage" width="246" height="326" rx="18"/>
+    <circle cx="30" cy="32" r="17" fill="#2563EB"/><text x="30" y="37" text-anchor="middle" class="step">3</text>
+    <text x="58" y="40" class="stage-title">决定买多少</text>
+    <text x="22" y="88" class="stage-copy">① 逆波动率初始分配</text>
+    <line x1="31" y1="104" x2="31" y2="128" stroke="#93C5FD" stroke-width="2"/>
+    <text x="22" y="151" class="stage-copy">② 缩放至 10% 目标波动</text>
+    <line x1="31" y1="167" x2="31" y2="191" stroke="#93C5FD" stroke-width="2"/>
+    <text x="22" y="214" class="stage-copy">③ 应用资产与总仓位上限</text>
+    <line x1="31" y1="230" x2="31" y2="254" stroke="#93C5FD" stroke-width="2"/>
+    <text x="22" y="277" class="stage-copy">④ 最多 30% 闲置预算</text>
+    <text x="42" y="300" font-size="13" fill="#64748B">由货币 ETF 有条件承接</text>
+  </g>
+
+  <path class="arrow" d="M899 289H925"/>
+
+  <g transform="translate(936 126)">
+    <rect class="stage" width="210" height="326" rx="18"/>
+    <circle cx="30" cy="32" r="17" fill="#2563EB"/><text x="30" y="37" text-anchor="middle" class="step">4</text>
+    <text x="58" y="40" class="stage-title">安全落地</text>
+    <rect x="20" y="67" width="170" height="48" rx="10" class="chip"/><text x="105" y="88" text-anchor="middle" class="chip-text">四份信号取平均</text><text x="105" y="106" text-anchor="middle" font-size="12" fill="#475569">每周只更新一份</text>
+    <rect x="20" y="126" width="170" height="48" rx="10" class="chip"/><text x="105" y="155" text-anchor="middle" class="chip-text">ATR + 组合风控</text>
+    <rect x="20" y="185" width="170" height="48" rx="10" class="chip"/><text x="105" y="206" text-anchor="middle" class="chip-text">先卖后买 · 整手</text><text x="105" y="224" text-anchor="middle" font-size="12" fill="#475569">1% 免交易带</text>
+    <rect x="20" y="258" width="170" height="44" rx="12" fill="#0F766E"/>
+    <text x="105" y="285" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">默认仅生成计划</text>
+  </g>
+
+  <g transform="translate(54 482)">
+    <rect class="guard" width="1092" height="76" rx="16"/>
+    <circle cx="38" cy="38" r="20" fill="#059669"/>
+    <path d="M29 38l6 6 12-14" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="72" y="31" class="guard-title">因果时序</text>
+    <text x="72" y="54" class="guard-copy">本周最后交易日收盘后决策</text>
+    <path d="M334 38H431" class="arrow"/>
+    <text x="457" y="31" class="timeline">冻结目标与风险状态</text>
+    <text x="457" y="54" class="timeline-note">当天收盘价不会被用于当天成交</text>
+    <path d="M720 38H817" class="arrow"/>
+    <text x="844" y="31" class="timeline">下一交易日执行</text>
+    <text x="844" y="54" class="timeline-note">实盘下单仍需配置、命令和人工确认</text>
+  </g>
 </svg>
