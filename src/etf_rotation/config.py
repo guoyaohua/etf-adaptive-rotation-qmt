@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -25,6 +26,7 @@ class AppConfig:
     project: Mapping[str, Any]
     universe: tuple[Instrument, ...]
     strategy: Mapping[str, Any]
+    cash_proxy: Mapping[str, Any]
     risk: Mapping[str, Any]
     execution: Mapping[str, Any]
     qmt: Mapping[str, Any]
@@ -137,6 +139,52 @@ def load_config(path: str | Path) -> AppConfig:
     known_groups = {item.group for item in universe}
     if proxy_cap > 0 and proxy_group not in known_groups:
         raise ValueError("启用闲置现金代理时，strategy.idle_cash_proxy_group 必须是标的池中的已知分组")
+    cash_proxy = raw.get("cash_proxy", {})
+    if not isinstance(cash_proxy, Mapping):
+        raise ValueError("cash_proxy 配置必须是映射")
+    cash_proxy_enabled = bool(cash_proxy.get("enabled", False))
+    cash_role_in_proxy_group = any(
+        item.group == proxy_group and item.role == "cash" for item in universe
+    )
+    if proxy_cap > 0 and cash_role_in_proxy_group and not cash_proxy_enabled:
+        raise ValueError(
+            "现金类闲置资金代理必须启用 cash_proxy 企业行为保护；"
+            "如需关闭该代理，请同时将 idle_cash_proxy_max_weight 设为 0"
+        )
+    if cash_proxy_enabled:
+        cash_symbol = str(_required(cash_proxy, "symbol")).strip()
+        instruments = {item.symbol: item for item in universe}
+        if cash_symbol not in instruments:
+            raise ValueError("cash_proxy.symbol 必须存在于标的池")
+        cash_instrument = instruments[cash_symbol]
+        if cash_instrument.role != "cash":
+            raise ValueError("cash_proxy.symbol 必须配置为 role: cash")
+        if cash_instrument.group != proxy_group:
+            raise ValueError(
+                "cash_proxy 标的分组必须与 strategy.idle_cash_proxy_group 一致"
+            )
+        for key in (
+            "blackout_start",
+            "blackout_end",
+            "reset_window_start",
+            "reset_window_end",
+        ):
+            value = str(_required(cash_proxy, key)).strip()
+            try:
+                datetime.strptime(f"2000-{value}", "%Y-%m-%d")
+            except ValueError as exc:
+                raise ValueError(f"cash_proxy.{key} 必须是 MM-DD") from exc
+        if str(cash_proxy.get("signal_mode", "")) != "par_reset":
+            raise ValueError("cash_proxy.signal_mode 当前只支持 par_reset")
+        reset_threshold = float(_required(cash_proxy, "reset_return_threshold"))
+        if not -0.50 < reset_threshold < 0.0:
+            raise ValueError("cash_proxy.reset_return_threshold 必须在 -0.50 到 0 之间")
+        anchor = float(_required(cash_proxy, "reset_anchor_price"))
+        tolerance = float(_required(cash_proxy, "reset_price_tolerance"))
+        if anchor <= 0 or not 0 <= tolerance < anchor * 0.10:
+            raise ValueError(
+                "cash_proxy.reset_anchor_price 必须为正，reset_price_tolerance 必须小于面值的 10%"
+            )
     risk = _required(raw, "risk")
     minimum_stop_distance = float(risk.get("minimum_stop_distance", 0.0))
     if not 0.0 <= minimum_stop_distance < 1.0:
@@ -206,6 +254,7 @@ def load_config(path: str | Path) -> AppConfig:
         project=project,
         universe=universe,
         strategy=strategy,
+        cash_proxy=cash_proxy,
         risk=risk,
         execution=_required(raw, "execution"),
         qmt=_required(raw, "qmt"),

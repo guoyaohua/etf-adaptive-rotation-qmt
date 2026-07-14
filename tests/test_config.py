@@ -10,7 +10,7 @@ def test_load_config(config_path):
     config = load_config(config_path)
     assert config.symbols == ["GROWTH.SH", "ALT.SH", "BOND.SH"]
     assert config.strategy["max_gross_exposure"] <= 1
-    assert config.project["strategy_version"] == "0.4.0"
+    assert config.project["strategy_version"] == "0.5.0"
 
 
 def test_config_rejects_strategy_version_drift(config_path):
@@ -42,6 +42,66 @@ def test_new_strategy_parameters_reject_invalid_ranges(
     )
 
     with pytest.raises(ValueError, match=message):
+        load_config(config_path)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda raw: raw["cash_proxy"].update(symbol="UNKNOWN.SH"), "symbol"),
+        (lambda raw: raw["cash_proxy"].update(signal_mode="raw"), "signal_mode"),
+        (
+            lambda raw: raw["cash_proxy"].update(reset_return_threshold=0.0),
+            "reset_return_threshold",
+        ),
+        (
+            lambda raw: raw["cash_proxy"].update(reset_window_start="02-30"),
+            "reset_window_start",
+        ),
+    ],
+)
+def test_cash_proxy_config_fails_closed(config_path, mutate, message):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw["universe"].append(
+        {
+            "symbol": "CASH.SH",
+            "name": "现金代理",
+            "role": "cash",
+            "group": "money_market",
+            "t0": True,
+        }
+    )
+    raw["strategy"]["idle_cash_proxy_group"] = "money_market"
+    raw["cash_proxy"].update(enabled=True, symbol="CASH.SH")
+    mutate(raw)
+    config_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match=message):
+        load_config(config_path)
+
+
+def test_cash_role_proxy_cannot_disable_its_corporate_action_guard(config_path):
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    raw["universe"].append(
+        {
+            "symbol": "CASH.SH",
+            "name": "现金代理",
+            "role": "cash",
+            "group": "money_market",
+            "t0": True,
+        }
+    )
+    raw["strategy"].update(
+        idle_cash_proxy_group="money_market", idle_cash_proxy_max_weight=0.30
+    )
+    raw["cash_proxy"].update(enabled=False, symbol="CASH.SH")
+    config_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="现金类闲置资金代理.*保护"):
         load_config(config_path)
 
 

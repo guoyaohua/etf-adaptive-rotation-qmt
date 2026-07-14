@@ -488,6 +488,7 @@ def evaluate_live_risk(
     prices: Mapping[str, float],
     risk: Mapping[str, Any],
     trade_date: str,
+    forced_exits: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str], float]:
     positions = ledger.get("positions", {})
     missing = sorted(set(positions).difference(prices))
@@ -560,6 +561,16 @@ def evaluate_live_risk(
         ledger["peak_equity"] = peak
     elif not portfolio_exit_already_latched:
         ledger["peak_equity"] = peak
+    # Date-policy exits must not suppress a simultaneous portfolio circuit
+    # breaker. Merge them only after the normal stop/drawdown state machine has
+    # updated cooldown and peak-equity state.
+    for symbol, reason in (forced_exits or {}).items():
+        if symbol in positions:
+            # A portfolio liquidation is stronger than a per-symbol calendar
+            # policy and must retain its reason for every holding.
+            if not str(exits.get(str(symbol), "")).startswith("portfolio_"):
+                exits[str(symbol)] = str(reason)
+            exit_dates.setdefault(str(symbol), trade_date)
     ledger["pending_risk_exits"] = exits
     ledger["pending_risk_exit_dates"] = exit_dates
     ledger["last_equity"] = equity

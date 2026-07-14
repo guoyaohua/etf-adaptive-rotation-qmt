@@ -1,6 +1,6 @@
 project:
   name: "ETF Adaptive Rotation for QMT"
-  strategy_version: "0.4.0"
+  strategy_version: "0.5.0"
   timezone: "Asia/Shanghai"
 
 universe:
@@ -16,6 +16,7 @@ universe:
   - {symbol: "518880.SH", name: "黄金ETF", role: "defensive", group: "gold", t0: true}
   - {symbol: "511010.SH", name: "国债ETF", role: "defensive", group: "treasury", t0: true}
   - {symbol: "511260.SH", name: "十年国债ETF", role: "defensive", group: "treasury", t0: true}
+  - {symbol: "511880.SH", name: "银华日利ETF", role: "cash", group: "money_market", t0: true}
 
 strategy:
   allocation_mode: "unified"      # 股票、黄金和国债在同一绝对/相对动量框架竞争
@@ -50,9 +51,21 @@ strategy:
   max_asset_weight: 0.40
   max_defensive_weight: 0.40
   max_gross_exposure: 0.90
-  idle_cash_proxy_group: "treasury" # 仅在国债长期趋势与动量为正时承接部分闲置风险预算
+  idle_cash_proxy_group: "money_market" # 货币 ETF 仅承接闲置预算，不参与主资产排名
   idle_cash_proxy_max_weight: 0.30
   min_weight_change: 0.01
+
+cash_proxy:
+  enabled: true
+  symbol: "511880.SH"
+  signal_mode: "par_reset"       # 因果连续信号；原始 OHLC 仍用于成交和估值
+  reset_anchor_price: 100.0
+  reset_return_threshold: -0.005   # 黑窗外出现同级异常复位时安全失败
+  reset_price_tolerance: 0.50
+  reset_window_start: "12-27"   # 仅年末历史复位区间可重建连续信号
+  reset_window_end: "12-31"
+  blackout_start: "12-15"       # 含首尾；避免跨越历史年末收益分配
+  blackout_end: "01-15"
 
 risk:
   soft_drawdown: 0.08

@@ -12,6 +12,12 @@ from pathlib import Path
 import pandas as pd
 
 from .backtest import Backtester
+from .cash_proxy import (
+    blackout_symbols,
+    constrain_cash_proxy_weights,
+    prepare_signal_data,
+    signal_adjustment_audit,
+)
 from .config import AppConfig, load_config
 from .data import CsvMarketDataStore, QmtDailyDownloader
 from .llm_decision import apply_llm_overlay, run_llm_decision
@@ -147,21 +153,51 @@ def _scheduled_targets(
     data: dict[str, pd.DataFrame],
     as_of: pd.Timestamp,
     completed_through: str | pd.Timestamp | None = None,
+    *,
+    enforce_cash_proxy_policy: bool = True,
 ) -> tuple[TargetPortfolio, list[TargetPortfolio]]:
     calendar = _market_calendar(data)
     _require_calendar_match(
         strategy.config, data, completed_through or as_of, "生成信号"
     )
+    signal_data = prepare_signal_data(strategy.config, data)
     dates = scheduled_dates(
         calendar.sort_values().unique(),
         as_of,
         strategy.config.strategy,
         completed_through=completed_through,
     )
-    targets = [strategy.target(data, date) for date in dates]
+    targets = [
+        strategy.target(
+            signal_data, date, enforce_cash_proxy_policy=False
+        )
+        for date in dates
+    ]
     if str(strategy.config.strategy.get("rebalance_schedule")) == "staggered_weeks":
-        return strategy.aggregate_targets(targets, int(strategy.config.strategy.get("rebalance_sleeves", 4))), targets
-    return targets[-1], targets
+        target = strategy.aggregate_targets(
+            targets,
+            int(strategy.config.strategy.get("rebalance_sleeves", 4)),
+            enforce_cash_proxy_policy=False,
+        )
+    else:
+        target = targets[-1]
+    if enforce_cash_proxy_policy:
+        constrained = constrain_cash_proxy_weights(
+            strategy.config, target.weights, as_of
+        )
+        if constrained != target.weights:
+            target = TargetPortfolio(
+                target.decision_date,
+                target.regime,
+                constrained,
+                target.signals,
+                {
+                    **target.diagnostics,
+                    "cash_proxy_blackout": True,
+                    "gross_exposure": float(sum(constrained.values())),
+                },
+            )
+    return target, targets
 
 
 def _scheduled_target(
@@ -193,6 +229,7 @@ def command_download(args: argparse.Namespace) -> int:
     downloader = QmtDailyDownloader()
     data = downloader.download(config.symbols, args.start, actual_end, args.timeout)
     _require_calendar_match(config, data, actual_end, "保存不完整下载")
+    cash_proxy_audit = signal_adjustment_audit(config, data)
     metadata = {
         "source": "QMT xtdata",
         "start_requested": args.start,
@@ -200,6 +237,7 @@ def command_download(args: argparse.Namespace) -> int:
         "completed_through": actual_end,
         "symbols_requested": config.symbols,
         "rows": {symbol: len(frame) for symbol, frame in data.items()},
+        "cash_proxy": cash_proxy_audit,
     }
     _store(config).save(data, metadata)
     print(json.dumps(metadata, ensure_ascii=False, indent=2))
@@ -499,6 +537,7 @@ def command_live_once(args: argparse.Namespace) -> int:
     downloader = QmtDailyDownloader()
     downloaded = downloader.download(config.symbols, start, end, int(args.timeout))
     _require_calendar_match(config, downloaded, end, "保存实盘行情")
+    cash_proxy_audit = signal_adjustment_audit(config, downloaded)
     _store(config).save(
         downloaded,
         {
@@ -506,12 +545,19 @@ def command_live_once(args: argparse.Namespace) -> int:
             "start_requested": start,
             "end_requested": end,
             "completed_through": end,
+            "cash_proxy": cash_proxy_audit,
         },
     )
     data = _store(config).load(config.symbols, require_all=True)
     as_of = _latest_common_date(data)
     strategy = RegimeRotationStrategy(config)
-    target, sleeve_targets = _scheduled_targets(strategy, data, as_of, completed_through=end)
+    target, sleeve_targets = _scheduled_targets(
+        strategy,
+        data,
+        as_of,
+        completed_through=end,
+        enforce_cash_proxy_policy=False,
+    )
     position_state = _position_state_payload(sleeve_targets)
     target, llm_result = _apply_configured_llm(config, target, refresh=args.refresh_llm)
     first_session_after_signal = as_of.normalize() == target.decision_date.normalize()
@@ -544,8 +590,29 @@ def _run_live_once_locked(
         _, _, _, _, valuation_prices = broker.snapshot(strategy_positions)
         equity = ledger_equity(ledger, valuation_prices)
         trade_date = now_shanghai().date().isoformat()
+        constrained_weights = constrain_cash_proxy_weights(
+            config, target.weights, trade_date
+        )
+        if constrained_weights != target.weights:
+            target = TargetPortfolio(
+                target.decision_date,
+                target.regime,
+                constrained_weights,
+                target.signals,
+                {
+                    **target.diagnostics,
+                    "cash_proxy_blackout": True,
+                    "gross_exposure": float(sum(constrained_weights.values())),
+                },
+            )
         ledger = update_monitor_heartbeat(ledger, trade_date, equity)
-        ledger, risk_exits, equity = evaluate_live_risk(ledger, valuation_prices, config.risk, trade_date)
+        forced_exits = {
+            symbol: "cash_distribution_blackout"
+            for symbol in blackout_symbols(config, trade_date)
+        }
+        ledger, risk_exits, equity = evaluate_live_risk(
+            ledger, valuation_prices, config.risk, trade_date, forced_exits
+        )
         atomic_write_json(ledger_path, ledger)
         if risk_exits:
             # A weekly target must not reopen a symbol whose protective exit is
@@ -696,7 +763,13 @@ def _run_live_monitor_locked(
                 quantity * prices[symbol] for symbol, quantity in strategy_positions.items()
             )
             ledger = update_monitor_heartbeat(ledger, trade_date, current_equity)
-            ledger, exits, equity = evaluate_live_risk(ledger, prices, config.risk, trade_date)
+            forced_exits = {
+                symbol: "cash_distribution_blackout"
+                for symbol in blackout_symbols(config, trade_date)
+            }
+            ledger, exits, equity = evaluate_live_risk(
+                ledger, prices, config.risk, trade_date, forced_exits
+            )
             risk_orders = [
                 PlannedOrder(symbol, "SELL", min(strategy_positions[symbol], account_sellable.get(symbol, 0)), prices[symbol], reason)
                 for symbol, reason in exits.items()

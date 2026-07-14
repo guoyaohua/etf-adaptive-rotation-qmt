@@ -39,6 +39,9 @@ def config_path(tmp_path: Path) -> Path:
         }
     )
     raw["execution"]["initial_capital"] = 100000
+    # Generic unit tests use synthetic symbols and exercise the pre-v0.5 core.
+    # Cash-proxy behavior has dedicated fixtures/tests.
+    raw["cash_proxy"]["enabled"] = False
     path = tmp_path / "strategy.yaml"
     path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return path

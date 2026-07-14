@@ -6,6 +6,11 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
+from .cash_proxy import (
+    blackout_symbols,
+    constrain_cash_proxy_weights,
+    prepare_signal_data,
+)
 from .config import AppConfig
 from .execution import CostModel, Fill, target_quantities
 from .risk import PortfolioRiskController, PositionRiskState, StopEngine
@@ -93,6 +98,7 @@ class Backtester:
         fills: list[dict] = []
         targets: list[dict] = []
         equity_rows: list[dict] = []
+        signal_data = prepare_signal_data(self.config, data)
         calendar = self._calendar(data)
         calendar_check = compare_exchange_calendar(
             calendar, str(self.config.strategy["rebalance_calendar"])
@@ -141,6 +147,29 @@ class Backtester:
                     risk_controller.state.liquidate_next_open = True
                 pending_target = None
 
+            # The configured money-market ETF distributes accrued income around
+            # year end, while QMT does not expose a strategy-level dividend cash
+            # ledger that can be reconciled safely.  Stay flat throughout the
+            # conservative window and retry the exit if an opening quote is
+            # unavailable.  No dividend is credited by the backtest.
+            blocked_cash_proxies = blackout_symbols(self.config, date)
+            if not force_liquidate:
+                for symbol in sorted(blocked_cash_proxies.intersection(positions)):
+                    price = open_prices.get(symbol)
+                    if price is None:
+                        continue
+                    fill = self.cost_model.fill(
+                        symbol,
+                        "SELL",
+                        positions[symbol],
+                        price,
+                        "cash_distribution_blackout",
+                    )
+                    cash += fill.notional - fill.commission
+                    self._record_fill(fills, date, fill)
+                    positions.pop(symbol, None)
+                    position_risk.pop(symbol, None)
+
             # Opening gaps are observable before the scheduled rebalance.  A
             # position that has already crossed its stop must be exited before
             # any target increase is applied, and it must not be bought back at
@@ -167,6 +196,17 @@ class Backtester:
 
             # Rebalance at the next available open after a completed decision day.
             if pending_target is not None and not force_liquidate:
+                constrained_weights = constrain_cash_proxy_weights(
+                    self.config, pending_target.weights, date
+                )
+                if constrained_weights != pending_target.weights:
+                    pending_target = TargetPortfolio(
+                        pending_target.decision_date,
+                        pending_target.regime,
+                        constrained_weights,
+                        pending_target.signals,
+                        {**pending_target.diagnostics, "cash_proxy_blackout": True},
+                    )
                 equity_at_open = self._mark_value(cash, positions, {**latest_close, **open_prices})
                 scale = risk_controller.exposure_scale(equity_at_open)
                 scaled_weights = {symbol: weight * scale for symbol, weight in pending_target.weights.items()}
@@ -208,6 +248,8 @@ class Backtester:
                     if block_new_buys:
                         break
                     if symbol in opening_stop_symbols:
+                        continue
+                    if symbol in blocked_cash_proxies:
                         continue
                     current = positions.get(symbol, 0)
                     target = desired.get(symbol, 0)
@@ -277,12 +319,18 @@ class Backtester:
             schedule = str(self.config.strategy.get("rebalance_schedule", "fixed_weeks"))
             due = date in due_dates
             if due:
-                target = self.strategy.target(data, date)
+                target = self.strategy.target(
+                    signal_data, date, enforce_cash_proxy_policy=False
+                )
                 if schedule == "staggered_weeks":
                     sleeve_count = int(self.config.strategy.get("rebalance_sleeves", 4))
                     sleeve_targets.append(target)
                     sleeve_targets = sleeve_targets[-sleeve_count:]
-                    target = self.strategy.aggregate_targets(sleeve_targets, sleeve_count)
+                    target = self.strategy.aggregate_targets(
+                        sleeve_targets,
+                        sleeve_count,
+                        enforce_cash_proxy_policy=False,
+                    )
                 # During a circuit-breaker cooldown, any pending risk-on target is
                 # discarded. It will be recomputed from fresh data after cooldown.
                 pending_target = target if risk_controller.state.cooldown_remaining == 0 else None

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from .backtest import BacktestResult, Backtester, calculate_metrics
+from .cash_proxy import signal_adjustment_audit
 from .config import AppConfig
 from .reporting import evaluate_gates
 from .schedule import compare_exchange_calendar
@@ -291,6 +292,12 @@ def run_robustness_validation(
         observed_calendar, str(config.strategy["rebalance_calendar"])
     )
     gates["exchange_calendar_matches_market_data"] = bool(calendar_check["passed"])
+    cash_proxy_audit = signal_adjustment_audit(config, data)
+    if cash_proxy_audit.get("enabled"):
+        # Reaching this point means all detected reset-sized moves were inside
+        # the narrow configured year-end window and satisfied the par-reset
+        # shape checks. A short validation range may legitimately contain none.
+        gates["cash_proxy_event_policy_valid"] = True
 
     config_bytes = Path(config.path).read_bytes()
     index = base.equity.index
@@ -335,6 +342,7 @@ def run_robustness_validation(
         },
         "prefix_invariance": _json_value(prefix.__dict__),
         "exchange_calendar": calendar_check,
+        "cash_proxy": cash_proxy_audit,
         "rolling_windows": windows,
         "worst_rolling": worst_rolling,
         "gates": gates,
@@ -380,6 +388,12 @@ def write_validation_report(report: Mapping[str, Any], output: str | Path) -> No
     )
     prefix = report["prefix_invariance"]
     calendar = report["exchange_calendar"]
+    cash_proxy = report.get("cash_proxy", {"enabled": False})
+    cash_proxy_rows = "\n".join(
+        f"| {item['date']} | {percent(item['raw_return'])} | "
+        f"{percent(item['signal_return'])} | {float(item['estimated_distribution']):.4f} |"
+        for item in cash_proxy.get("adjustments", [])
+    ) or "| 未启用或无复位 | - | - | - |"
     limitations = "\n".join(f"- {item}" for item in report["limitations"])
     markdown = f"""# 策略稳健性验证报告 (v{report['strategy_version']})
 
@@ -413,6 +427,18 @@ def write_validation_report(report: Mapping[str, Any], output: str | Path) -> No
 - 观察/应有会话：{calendar['observed_sessions']} / {calendar['expected_sessions']}
 - 缺失会话：{', '.join(calendar['missing_sessions']) if calendar['missing_sessions'] else '无'}
 - 异常会话：{', '.join(calendar['unexpected_sessions']) if calendar['unexpected_sessions'] else '无'}
+
+## 货币 ETF 现金代理审计
+
+- 状态：{'启用' if cash_proxy.get('enabled') else '未启用'}
+- 标的：`{cash_proxy.get('symbol', '-')}`
+- 强制空仓黑窗：`{cash_proxy.get('blackout_start', '-')}` ~ `{cash_proxy.get('blackout_end', '-')}`（跨年、含首尾）
+- 允许识别复位窗口：`{cash_proxy.get('reset_window_start', '-')}` ~ `{cash_proxy.get('reset_window_end', '-')}`
+- 原始 OHLC 只用于成交和净值；连续信号只用于趋势、动量与波动率。回测不计入任何现金分红。
+
+| 复位日 | 原始收益 | 信号收益 | 估算分配（仅信号连续化） |
+|---|---:|---:|---:|
+{cash_proxy_rows}
 
 ## 滚动窗口（参数冻结）
 

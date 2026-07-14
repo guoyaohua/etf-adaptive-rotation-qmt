@@ -6,6 +6,7 @@ from typing import Mapping
 import numpy as np
 import pandas as pd
 
+from .cash_proxy import constrain_cash_proxy_weights
 from .config import AppConfig
 from .indicators import (
     annualized_volatility,
@@ -66,12 +67,18 @@ class RegimeRotationStrategy:
     def _asset_signal(self, symbol: str, frame: pd.DataFrame) -> AssetSignal:
         p = self.params
         instrument = self.instruments[symbol]
-        close = frame["close"].dropna()
-        if close.empty:
+        # Cash-distributing ETFs may expose a causal total-return signal close.
+        # Raw close and raw OHLC remain authoritative for liquidity, execution,
+        # valuation and stop-risk state.
+        raw_close = frame["close"].dropna()
+        signal_close = (
+            frame["signal_close"] if "signal_close" in frame else frame["close"]
+        ).dropna()
+        if raw_close.empty or signal_close.empty:
             return AssetSignal(symbol, instrument.role, instrument.group, np.nan, 0.0, np.nan, np.nan, np.nan, False, False, np.nan, False)
 
         momenta = [
-            simple_return(close, int(lookback), int(p["momentum_skip_days"]))
+            simple_return(signal_close, int(lookback), int(p["momentum_skip_days"]))
             for lookback in p["momentum_lookbacks"]
         ]
         momentum = (
@@ -79,15 +86,18 @@ class RegimeRotationStrategy:
             if all(np.isfinite(value) for value in momenta)
             else np.nan
         )
-        volatility = annualized_volatility(close, int(p["volatility_lookback"]))
+        volatility = annualized_volatility(signal_close, int(p["volatility_lookback"]))
         trend_window = int(
             p["growth_trend_sma"] if instrument.role == "growth" else p["defensive_trend_sma"]
         )
-        trend = moving_average(close, trend_window)
-        slope = ema_slope(close, int(p["fast_ema"]), int(p["fast_slope_days"]))
+        trend = moving_average(signal_close, trend_window)
+        slope = ema_slope(
+            signal_close, int(p["fast_ema"]), int(p["fast_slope_days"])
+        )
         average_amount = float(frame["amount"].dropna().tail(int(p["liquidity_lookback"])).mean())
-        last_close = float(close.iloc[-1])
-        above_trend = bool(np.isfinite(trend) and last_close > trend)
+        last_close = float(raw_close.iloc[-1])
+        last_signal_close = float(signal_close.iloc[-1])
+        above_trend = bool(np.isfinite(trend) and last_signal_close > trend)
         positive_slope = bool(np.isfinite(slope) and slope > 0)
         risk_floor = max(float(p["score_volatility_floor"]), volatility) if np.isfinite(volatility) else np.nan
         # Volatility is already used again by inverse-volatility position sizing.
@@ -249,15 +259,26 @@ class RegimeRotationStrategy:
         self,
         data: Mapping[str, pd.DataFrame],
         decision_date: str | pd.Timestamp,
+        *,
+        enforce_cash_proxy_policy: bool = True,
     ) -> TargetPortfolio:
         date = pd.Timestamp(decision_date)
         sliced = {symbol: frame.loc[frame.index <= date] for symbol, frame in data.items() if symbol in self.instruments}
         signals = {symbol: self._asset_signal(symbol, frame) for symbol, frame in sliced.items() if not frame.empty}
         regime, diagnostics = self._regime(signals)
-        closes = pd.DataFrame({symbol: frame["close"] for symbol, frame in sliced.items()})
+        closes = pd.DataFrame(
+            {
+                symbol: (
+                    frame["signal_close"] if "signal_close" in frame else frame["close"]
+                )
+                for symbol, frame in sliced.items()
+            }
+        )
         returns = closes.pct_change(fill_method=None)
         selected = self._select(signals, regime, returns)
         weights = self._weights(selected, returns, signals)
+        if enforce_cash_proxy_policy:
+            weights = constrain_cash_proxy_weights(self.config, weights, date)
         diagnostics.update(
             {
                 "strategy_version": STRATEGY_VERSION,
@@ -268,10 +289,12 @@ class RegimeRotationStrategy:
         )
         return TargetPortfolio(date, regime, weights, signals, diagnostics)
 
-    @staticmethod
     def aggregate_targets(
+        self,
         targets: list[TargetPortfolio],
         sleeve_count: int,
+        *,
+        enforce_cash_proxy_policy: bool = True,
     ) -> TargetPortfolio:
         """Average staggered sleeves; uninitialized sleeves remain cash."""
         if not targets or sleeve_count <= 0:
@@ -281,6 +304,10 @@ class RegimeRotationStrategy:
             for symbol, weight in target.weights.items():
                 combined[symbol] = combined.get(symbol, 0.0) + float(weight) / sleeve_count
         latest = targets[-1]
+        if enforce_cash_proxy_policy:
+            combined = constrain_cash_proxy_weights(
+                self.config, combined, latest.decision_date
+            )
         regimes = [target.regime for target in targets[-sleeve_count:]]
         diagnostics = dict(latest.diagnostics)
         diagnostics.update(
