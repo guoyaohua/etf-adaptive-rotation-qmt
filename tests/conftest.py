@@ -21,6 +21,7 @@ def config_path(tmp_path: Path) -> Path:
     ]
     raw["strategy"].update(
         {
+            "rebalance_calendar": "24/5",
             "momentum_lookbacks": [10, 20, 40],
             "momentum_skip_days": 2,
             "growth_trend_sma": 50,

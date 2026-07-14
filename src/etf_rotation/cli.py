@@ -37,7 +37,7 @@ from .runtime import (
     stable_risk_plan_id,
     update_monitor_heartbeat,
 )
-from .schedule import scheduled_dates
+from .schedule import compare_exchange_calendar, is_exchange_session, scheduled_dates
 from .strategy import RegimeRotationStrategy, TargetPortfolio
 from .version import STRATEGY_VERSION
 
@@ -57,6 +57,36 @@ def _latest_common_date(data: dict[str, pd.DataFrame]) -> pd.Timestamp:
         latest_by_symbol = {symbol: str(frame.index.max().date()) for symbol, frame in data.items() if not frame.empty}
         raise RuntimeError(f"标的之间没有共同行情日期: {latest_by_symbol}")
     return pd.Timestamp(common.max())
+
+
+def _market_calendar(data: dict[str, pd.DataFrame]) -> pd.DatetimeIndex:
+    calendar = pd.DatetimeIndex([])
+    for frame in data.values():
+        if not frame.empty:
+            calendar = calendar.union(frame.index)
+    if calendar.empty:
+        raise RuntimeError("没有可用于校验的行情日期")
+    return calendar.sort_values().unique()
+
+
+def _require_calendar_match(
+    config: AppConfig,
+    data: dict[str, pd.DataFrame],
+    completed_through: str | pd.Timestamp | None,
+    action: str,
+) -> dict[str, object]:
+    result = compare_exchange_calendar(
+        _market_calendar(data),
+        str(config.strategy["rebalance_calendar"]),
+        completed_through=completed_through,
+    )
+    if not result["passed"]:
+        raise RuntimeError(
+            f"行情日期与交易所日历不一致，拒绝{action}："
+            f"missing={result['missing_sessions']}, "
+            f"unexpected={result['unexpected_sessions']}"
+        )
+    return result
 
 
 def _target_payload(target: TargetPortfolio) -> dict:
@@ -116,11 +146,18 @@ def _scheduled_targets(
     strategy: RegimeRotationStrategy,
     data: dict[str, pd.DataFrame],
     as_of: pd.Timestamp,
+    completed_through: str | pd.Timestamp | None = None,
 ) -> tuple[TargetPortfolio, list[TargetPortfolio]]:
-    calendar = pd.DatetimeIndex([])
-    for frame in data.values():
-        calendar = calendar.union(frame.index)
-    dates = scheduled_dates(calendar.sort_values().unique(), as_of, strategy.config.strategy)
+    calendar = _market_calendar(data)
+    _require_calendar_match(
+        strategy.config, data, completed_through or as_of, "生成信号"
+    )
+    dates = scheduled_dates(
+        calendar.sort_values().unique(),
+        as_of,
+        strategy.config.strategy,
+        completed_through=completed_through,
+    )
     targets = [strategy.target(data, date) for date in dates]
     if str(strategy.config.strategy.get("rebalance_schedule")) == "staggered_weeks":
         return strategy.aggregate_targets(targets, int(strategy.config.strategy.get("rebalance_sleeves", 4))), targets
@@ -128,19 +165,39 @@ def _scheduled_targets(
 
 
 def _scheduled_target(
-    strategy: RegimeRotationStrategy, data: dict[str, pd.DataFrame], as_of: pd.Timestamp
+    strategy: RegimeRotationStrategy,
+    data: dict[str, pd.DataFrame],
+    as_of: pd.Timestamp,
+    completed_through: str | pd.Timestamp | None = None,
 ) -> TargetPortfolio:
-    return _scheduled_targets(strategy, data, as_of)[0]
+    return _scheduled_targets(strategy, data, as_of, completed_through)[0]
+
+
+def _completed_download_end(
+    requested_end: str | pd.Timestamp, completed_through: str | pd.Timestamp
+) -> str:
+    requested = pd.Timestamp(requested_end).normalize()
+    completed = pd.Timestamp(completed_through).normalize()
+    return min(requested, completed).strftime("%Y%m%d")
 
 
 def command_download(args: argparse.Namespace) -> int:
     config = load_config(args.config)
+    actual_end = _completed_download_end(
+        args.end, last_completed_calendar_date()
+    )
+    if pd.Timestamp(args.start).normalize() > pd.Timestamp(actual_end).normalize():
+        raise ValueError(
+            f"下载起点 {args.start} 晚于最后可用完整日线 {pd.Timestamp(actual_end).date()}"
+        )
     downloader = QmtDailyDownloader()
-    data = downloader.download(config.symbols, args.start, args.end, args.timeout)
+    data = downloader.download(config.symbols, args.start, actual_end, args.timeout)
+    _require_calendar_match(config, data, actual_end, "保存不完整下载")
     metadata = {
         "source": "QMT xtdata",
         "start_requested": args.start,
         "end_requested": args.end,
+        "completed_through": actual_end,
         "symbols_requested": config.symbols,
         "rows": {symbol: len(frame) for symbol, frame in data.items()},
     }
@@ -151,7 +208,8 @@ def command_download(args: argparse.Namespace) -> int:
 
 def command_backtest(args: argparse.Namespace) -> int:
     config = load_config(args.config)
-    data = _store(config).load(config.symbols, args.start, args.end)
+    data = _store(config).load(config.symbols, args.start, args.end, require_all=True)
+    _require_calendar_match(config, data, args.end, "运行回测")
     base = Backtester(config, cost_multiplier=1.0).run(data)
     stress_multiplier = float(config.execution["stress_cost_multiplier"])
     stress = Backtester(config, cost_multiplier=stress_multiplier).run(data)
@@ -164,10 +222,29 @@ def command_backtest(args: argparse.Namespace) -> int:
 
 def command_signal(args: argparse.Namespace) -> int:
     config = load_config(args.config)
-    data = _store(config).load(config.symbols)
+    store = _store(config)
+    data = store.load(config.symbols, require_all=True)
     date = pd.Timestamp(args.date) if args.date else _latest_common_date(data)
+    metadata = store.load_metadata()
+    completed_through = (
+        args.completed_through
+        if args.completed_through
+        else (
+            min(
+                pd.Timestamp(args.date).normalize(),
+                pd.Timestamp(last_completed_calendar_date()).normalize(),
+            ).strftime("%Y%m%d")
+            if args.date
+            else metadata.get("completed_through")
+        )
+    )
+    if completed_through is None:
+        raise RuntimeError(
+            "行情元数据缺少 completed_through，无法确认节假日调度边界；"
+            "请先运行 download，或显式传入 --completed-through"
+        )
     strategy = RegimeRotationStrategy(config)
-    target = _scheduled_target(strategy, data, date)
+    target = _scheduled_target(strategy, data, date, completed_through)
     payload = _target_payload(target)
     llm_result = None
     if args.with_llm or bool(config.llm.get("enabled", False)):
@@ -218,7 +295,16 @@ def command_doctor(args: argparse.Namespace) -> int:
     except Exception as exc:
         check("xtquant", False, str(exc))
     try:
-        data = _store(config).load(config.symbols)
+        store = _store(config)
+        data = store.load(config.symbols, require_all=True)
+        metadata = store.load_metadata()
+        if not metadata.get("completed_through"):
+            raise RuntimeError(
+                "行情元数据缺少 completed_through，请先重新下载完整日线"
+            )
+        _require_calendar_match(
+            config, data, metadata.get("completed_through"), "通过环境体检"
+        )
         latest = _latest_common_date(data)
         row_counts = [len(frame) for frame in data.values()]
         check("daily data", min(row_counts) >= RegimeRotationStrategy(config).warmup_bars, f"最新 {latest.date()}，最少 {min(row_counts)} 行")
@@ -403,17 +489,29 @@ def command_live_once(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     if args.execute and args.ignore_session:
         raise ValueError("--ignore-session 只能生成调试计划，不能与 --execute 同时使用")
-    if not args.ignore_session and not is_continuous_trading_session():
+    calendar_name = str(config.strategy["rebalance_calendar"])
+    if not args.ignore_session and not is_continuous_trading_session(
+        exchange_calendar=calendar_name
+    ):
         raise RuntimeError("当前不在连续交易时段（09:30-11:30 / 13:00-14:55），拒绝运行实盘批次")
     end = last_completed_calendar_date()
     start = str(config.qmt.get("history_start", "20150101"))
     downloader = QmtDailyDownloader()
     downloaded = downloader.download(config.symbols, start, end, int(args.timeout))
-    _store(config).save(downloaded, {"source": "QMT xtdata", "start_requested": start, "end_requested": end})
-    data = _store(config).load(config.symbols)
+    _require_calendar_match(config, downloaded, end, "保存实盘行情")
+    _store(config).save(
+        downloaded,
+        {
+            "source": "QMT xtdata",
+            "start_requested": start,
+            "end_requested": end,
+            "completed_through": end,
+        },
+    )
+    data = _store(config).load(config.symbols, require_all=True)
     as_of = _latest_common_date(data)
     strategy = RegimeRotationStrategy(config)
-    target, sleeve_targets = _scheduled_targets(strategy, data, as_of)
+    target, sleeve_targets = _scheduled_targets(strategy, data, as_of, completed_through=end)
     position_state = _position_state_payload(sleeve_targets)
     target, llm_result = _apply_configured_llm(config, target, refresh=args.refresh_llm)
     first_session_after_signal = as_of.normalize() == target.decision_date.normalize()
@@ -567,10 +665,18 @@ def _run_live_monitor_locked(
         while True:
             current = now_shanghai()
             current_time = current.time().replace(tzinfo=None)
-            if not args.ignore_session and not is_continuous_trading_session(current):
+            if not args.ignore_session and not is_continuous_trading_session(
+                current, str(config.strategy["rebalance_calendar"])
+            ):
                 if args.once:
                     raise RuntimeError("当前不在连续交易时段，风控检查已安全停止")
-                if current.weekday() < 5 and wall_time(11, 30) < current_time < wall_time(13, 0):
+                if (
+                    is_exchange_session(
+                        current.date().isoformat(),
+                        str(config.strategy["rebalance_calendar"]),
+                    )
+                    and wall_time(11, 30) < current_time < wall_time(13, 0)
+                ):
                     time.sleep(min(30, max(1, int(args.interval))))
                     continue
                 print("已离开连续交易时段，风控监控正常结束。")
@@ -681,6 +787,10 @@ def build_parser() -> argparse.ArgumentParser:
     signal = subparsers.add_parser("signal", help="生成最新目标权重")
     signal.add_argument("--config", required=True)
     signal.add_argument("--date")
+    signal.add_argument(
+        "--completed-through",
+        help="已确认完成的日历日；历史休市周回放时用于区分周四收盘与周五休市",
+    )
     signal.add_argument("--output")
     signal.add_argument("--with-llm", action="store_true", help="按配置运行 LLM 风险复核")
     signal.add_argument("--refresh-llm", action="store_true", help="忽略本周 LLM 缓存并重新调用")

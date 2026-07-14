@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any, BinaryIO, Iterable, Iterator, Mapping
 from zoneinfo import ZoneInfo
 
+from .schedule import is_exchange_session
+
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 LEDGER_SCHEMA_VERSION = 1
 
@@ -21,13 +23,17 @@ def iso_now() -> str:
     return now_shanghai().isoformat(timespec="seconds")
 
 
-def is_continuous_trading_session(moment: datetime | None = None) -> bool:
+def is_continuous_trading_session(
+    moment: datetime | None = None, exchange_calendar: str = "XSHG"
+) -> bool:
     current = moment or now_shanghai()
     if current.tzinfo is None:
         current = current.replace(tzinfo=SHANGHAI)
     else:
         current = current.astimezone(SHANGHAI)
     if current.weekday() >= 5:
+        return False
+    if not is_exchange_session(current.date().isoformat(), exchange_calendar):
         return False
     current_time = current.time().replace(tzinfo=None)
     return (

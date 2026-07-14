@@ -9,7 +9,7 @@ import pandas as pd
 from .config import AppConfig
 from .execution import CostModel, Fill, target_quantities
 from .risk import PortfolioRiskController, PositionRiskState, StopEngine
-from .schedule import is_rebalance_date
+from .schedule import compare_exchange_calendar, rebalance_dates
 from .strategy import RegimeRotationStrategy, TargetPortfolio
 
 
@@ -94,6 +94,16 @@ class Backtester:
         targets: list[dict] = []
         equity_rows: list[dict] = []
         calendar = self._calendar(data)
+        calendar_check = compare_exchange_calendar(
+            calendar, str(self.config.strategy["rebalance_calendar"])
+        )
+        if not calendar_check["passed"]:
+            raise ValueError(
+                "行情日期与交易所日历不一致，拒绝把数据缺口当作休市："
+                f"missing={calendar_check['missing_sessions']}, "
+                f"unexpected={calendar_check['unexpected_sessions']}"
+            )
+        due_dates = set(rebalance_dates(calendar, self.config.strategy))
         risk_config = self.config.risk
         risk_controller = PortfolioRiskController(
             initial_capital,
@@ -262,9 +272,10 @@ class Backtester:
                 }
             )
 
-            # Weekly signal is generated after close and can only affect a later session.
+            # The signal is generated after the final session of a completed
+            # schedule week and can only affect a later session.
             schedule = str(self.config.strategy.get("rebalance_schedule", "fixed_weeks"))
-            due = is_rebalance_date(date, self.config.strategy)
+            due = date in due_dates
             if due:
                 target = self.strategy.target(data, date)
                 if schedule == "staggered_weeks":

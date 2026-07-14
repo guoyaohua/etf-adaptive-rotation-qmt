@@ -13,6 +13,7 @@ import pandas as pd
 from .backtest import BacktestResult, Backtester, calculate_metrics
 from .config import AppConfig
 from .reporting import evaluate_gates
+from .schedule import compare_exchange_calendar
 from .version import STRATEGY_VERSION
 
 
@@ -283,6 +284,13 @@ def run_robustness_validation(
             ),
         }
     )
+    observed_calendar = pd.DatetimeIndex([])
+    for frame in data.values():
+        observed_calendar = observed_calendar.union(frame.index)
+    calendar_check = compare_exchange_calendar(
+        observed_calendar, str(config.strategy["rebalance_calendar"])
+    )
+    gates["exchange_calendar_matches_market_data"] = bool(calendar_check["passed"])
 
     config_bytes = Path(config.path).read_bytes()
     index = base.equity.index
@@ -326,6 +334,7 @@ def run_robustness_validation(
             _cost_key(value): _json_value(results[value].metrics) for value in multipliers
         },
         "prefix_invariance": _json_value(prefix.__dict__),
+        "exchange_calendar": calendar_check,
         "rolling_windows": windows,
         "worst_rolling": worst_rolling,
         "gates": gates,
@@ -370,6 +379,7 @@ def write_validation_report(report: Mapping[str, Any], output: str | Path) -> No
         for name, passed in report["gates"].items()
     )
     prefix = report["prefix_invariance"]
+    calendar = report["exchange_calendar"]
     limitations = "\n".join(f"- {item}" for item in report["limitations"])
     markdown = f"""# 策略稳健性验证报告 (v{report['strategy_version']})
 
@@ -392,6 +402,17 @@ def write_validation_report(report: Mapping[str, Any], output: str | Path) -> No
 - 结论：{'通过' if prefix['passed'] else '失败'}
 - 比较：{prefix['compared_equity_rows']} 个净值日、{prefix['compared_fills']} 笔成交、{prefix['compared_targets']} 个目标
 - 差异：{'; '.join(prefix['mismatches']) if prefix['mismatches'] else '无'}
+
+## 交易所日历一致性
+
+- 日历：`{calendar['name']}`
+- 日历库版本：`exchange-calendars {calendar['library_version']}`
+- 会话序列指纹：`{calendar['sessions_sha256']}`
+- 内置覆盖：`{calendar['calendar_first_session']}` ~ `{calendar['calendar_last_session']}`
+- 区间：`{calendar['start']}` ~ `{calendar['end']}`
+- 观察/应有会话：{calendar['observed_sessions']} / {calendar['expected_sessions']}
+- 缺失会话：{', '.join(calendar['missing_sessions']) if calendar['missing_sessions'] else '无'}
+- 异常会话：{', '.join(calendar['unexpected_sessions']) if calendar['unexpected_sessions'] else '无'}
 
 ## 滚动窗口（参数冻结）
 

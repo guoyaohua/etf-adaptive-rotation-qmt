@@ -130,14 +130,26 @@ class CsvMarketDataStore:
             with (self.directory / "metadata.json").open("w", encoding="utf-8") as handle:
                 json.dump(metadata, handle, ensure_ascii=False, indent=2, default=str)
 
+    def load_metadata(self) -> dict:
+        path = self.directory / "metadata.json"
+        if not path.exists():
+            return {}
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"行情元数据必须是 JSON 对象: {path}")
+        return payload
+
     def load(
         self,
         symbols: Iterable[str],
         start: str | None = None,
         end: str | None = None,
+        *,
+        require_all: bool = False,
     ) -> dict[str, pd.DataFrame]:
+        requested = list(symbols)
         result: dict[str, pd.DataFrame] = {}
-        for symbol in symbols:
+        for symbol in requested:
             path = self.directory / self._filename(symbol)
             if not path.exists():
                 continue
@@ -148,6 +160,9 @@ class CsvMarketDataStore:
             if end:
                 frame = frame.loc[frame.index <= pd.Timestamp(end)]
             result[symbol] = frame
+        missing = sorted(set(requested).difference(result))
+        if require_all and missing:
+            raise FileNotFoundError(f"行情目录缺少必需标的: {missing}")
         if not result:
             raise FileNotFoundError(f"目录中没有可用行情: {self.directory}")
         return result
@@ -220,4 +235,7 @@ class QmtDailyDownloader:
             result[symbol] = normalize_daily_frame(pd.DataFrame(columns))
         if not result:
             raise RuntimeError("QMT 未返回任何日线，请确认行情端已启动并下载权限正常")
+        missing = sorted(set(symbols).difference(result))
+        if missing:
+            raise RuntimeError(f"QMT 未返回全部必需日线: {missing}")
         return result

@@ -5,11 +5,14 @@ import json
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from etf_rotation.config import load_config  # noqa: E402
 from etf_rotation.data import CsvMarketDataStore  # noqa: E402
+from etf_rotation.schedule import compare_exchange_calendar  # noqa: E402
 from etf_rotation.validation import (  # noqa: E402
     run_robustness_validation,
     write_validation_report,
@@ -34,7 +37,21 @@ def main() -> int:
     args = parse_args()
     config = load_config(args.config)
     store = CsvMarketDataStore(config.resolve_path(str(config.qmt["data_directory"])))
-    data = store.load(config.symbols, args.start, args.end)
+    data = store.load(config.symbols, args.start, args.end, require_all=True)
+    calendar = pd.DatetimeIndex([])
+    for frame in data.values():
+        calendar = calendar.union(frame.index)
+    calendar_check = compare_exchange_calendar(
+        calendar,
+        str(config.strategy["rebalance_calendar"]),
+        completed_through=args.end,
+    )
+    if not calendar_check["passed"]:
+        raise RuntimeError(
+            "行情日期与交易所日历不一致，拒绝验证："
+            f"missing={calendar_check['missing_sessions']}, "
+            f"unexpected={calendar_check['unexpected_sessions']}"
+        )
     multipliers = tuple(float(item.strip()) for item in args.cost_multipliers.split(",") if item.strip())
     report = run_robustness_validation(
         config,

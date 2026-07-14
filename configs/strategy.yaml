@@ -1,6 +1,6 @@
 project:
   name: "ETF Adaptive Rotation for QMT"
-  strategy_version: "0.3.0"
+  strategy_version: "0.4.0"
   timezone: "Asia/Shanghai"
 
 universe:
@@ -21,7 +21,8 @@ strategy:
   allocation_mode: "unified"      # 股票、黄金和国债在同一绝对/相对动量框架竞争
   rebalance_schedule: "staggered_weeks" # 四个错峰四周子组合，每周更新一个子组合
   rebalance_sleeves: 4
-  rebalance_weekday: 4              # 周五收盘生成信号，下一交易日开盘执行
+  rebalance_weekday: 4              # 每周最后交易日收盘生成信号，常规周为周五
+  rebalance_calendar: "XSHG"      # 交易所日历决定节假日周的最后交易日，行情缺失不得冒充休市
   rebalance_interval_weeks: 4       # fixed_weeks 模式使用；月末模式忽略
   rebalance_phase_weeks: 0          # fixed_weeks 模式的稳定纪元相位
   momentum_lookbacks: [20, 60, 120]

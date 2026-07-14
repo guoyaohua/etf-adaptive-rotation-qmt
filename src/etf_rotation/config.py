@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import yaml
 
 from .version import STRATEGY_VERSION
+from .schedule import exchange_calendar_bounds
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,10 @@ def load_config(path: str | Path) -> AppConfig:
         raise ValueError("本项目只接受显式标记为 T+0 的标的")
 
     strategy = _required(raw, "strategy")
+    calendar_name = str(strategy.get("rebalance_calendar", "")).strip()
+    if not calendar_name:
+        raise ValueError("strategy.rebalance_calendar 不能为空")
+    exchange_calendar_bounds(calendar_name)
     lookbacks = list(_required(strategy, "momentum_lookbacks"))
     weights = list(_required(strategy, "momentum_weights"))
     if len(lookbacks) != len(weights) or not lookbacks:

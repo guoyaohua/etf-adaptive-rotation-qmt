@@ -37,13 +37,14 @@ if ($Connect) { $doctorArgs += '--connect' }
 & etf-rr @doctorArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$now = Get-Date
-$clock = $now.TimeOfDay
-$weekday = [int]$now.DayOfWeek
-$inSession = ($weekday -ge 1 -and $weekday -le 5) -and (
-    ($clock -ge [TimeSpan]::Parse('09:30:00') -and $clock -le [TimeSpan]::Parse('11:30:00')) -or
-    ($clock -ge [TimeSpan]::Parse('13:00:00') -and $clock -le [TimeSpan]::Parse('14:55:00'))
-)
+$env:ETF_RR_SETUP_CONFIG = (Resolve-Path -LiteralPath $Config).Path
+try {
+    $sessionState = & python -c "import os; from etf_rotation.config import load_config; from etf_rotation.runtime import is_continuous_trading_session; c = load_config(os.environ['ETF_RR_SETUP_CONFIG']); print('OPEN' if is_continuous_trading_session(exchange_calendar=str(c.strategy['rebalance_calendar'])) else 'CLOSED')"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $inSession = ($sessionState.Trim() -eq 'OPEN')
+} finally {
+    Remove-Item Env:ETF_RR_SETUP_CONFIG -ErrorAction SilentlyContinue
+}
 if ($inSession) {
     Write-Host '[4/4] Generating the first connected dry-run plan...'
     etf-rr live-once --config $Config --capital $Capital

@@ -11,7 +11,7 @@ def test_risk_on_selects_positive_growth(config, trending_data):
     assert "GROWTH.SH" in target.weights
     assert sum(target.weights.values()) <= config.strategy["max_gross_exposure"] + 1e-12
     assert all(weight <= config.strategy["max_asset_weight"] + 1e-12 for weight in target.weights.values())
-    assert target.diagnostics["strategy_version"] == "0.3.0"
+    assert target.diagnostics["strategy_version"] == "0.4.0"
 
 
 def test_future_data_cannot_change_past_signal(config, trending_data):

@@ -1,16 +1,16 @@
 from etf_rotation.config import load_config
-from etf_rotation.data import normalize_daily_frame
+from etf_rotation.data import CsvMarketDataStore, normalize_daily_frame
 import pandas as pd
 import pytest
 import yaml
-from etf_rotation.cli import _latest_common_date
+from etf_rotation.cli import _completed_download_end, _latest_common_date
 
 
 def test_load_config(config_path):
     config = load_config(config_path)
     assert config.symbols == ["GROWTH.SH", "ALT.SH", "BOND.SH"]
     assert config.strategy["max_gross_exposure"] <= 1
-    assert config.project["strategy_version"] == "0.3.0"
+    assert config.project["strategy_version"] == "0.4.0"
 
 
 def test_config_rejects_strategy_version_drift(config_path):
@@ -179,3 +179,28 @@ def test_latest_common_date_requires_every_loaded_symbol():
     }
 
     assert _latest_common_date(data) == pd.Timestamp("2025-01-02")
+
+
+def test_download_end_never_includes_an_unfinished_requested_day():
+    assert _completed_download_end("20250110", "20250109") == "20250109"
+    assert _completed_download_end("20250108", "20250109") == "20250108"
+
+
+def test_market_data_store_can_require_every_requested_symbol(tmp_path):
+    frame = pd.DataFrame(
+        {
+            "open": [1.0], "high": [1.1], "low": [0.9], "close": [1.0],
+            "volume": [100], "amount": [1000],
+        },
+        index=pd.to_datetime(["2025-01-02"]),
+    )
+    store = CsvMarketDataStore(tmp_path)
+    store.save(
+        {"A.SH": frame},
+        {"end_requested": "20250102", "completed_through": "20250102"},
+    )
+
+    with pytest.raises(FileNotFoundError, match="B.SH"):
+        store.load(["A.SH", "B.SH"], require_all=True)
+    assert store.load_metadata()["end_requested"] == "20250102"
+    assert store.load_metadata()["completed_through"] == "20250102"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 import pytest
 
@@ -18,6 +19,8 @@ from etf_rotation.runtime import (
     stable_plan_id,
     stable_risk_plan_id,
     update_monitor_heartbeat,
+    is_continuous_trading_session,
+    SHANGHAI,
 )
 
 
@@ -31,6 +34,15 @@ RISK = {
     "daily_loss_limit": 0.02,
     "daily_loss_cooldown_days": 5,
 }
+
+
+def test_continuous_session_rejects_exchange_holiday():
+    assert not is_continuous_trading_session(
+        datetime(2024, 4, 5, 10, 0, tzinfo=SHANGHAI), "XSHG"
+    )
+    assert is_continuous_trading_session(
+        datetime(2024, 4, 8, 10, 0, tzinfo=SHANGHAI), "XSHG"
+    )
 
 
 def test_ledger_is_account_bound_without_storing_account_id(tmp_path):

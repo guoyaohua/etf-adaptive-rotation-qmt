@@ -61,5 +61,7 @@ def test_validation_harness_runs_multiple_costs(config, trending_data):
     )
     assert set(report["cost_scenarios"]) == {"1x", "2x"}
     assert report["prefix_invariance"]["passed"]
+    assert report["exchange_calendar"]["passed"]
+    assert report["gates"]["exchange_calendar_matches_market_data"]
     assert len(report["market_data_sha256"]) == 64
     assert len(report["code_sha256"]) == 64
