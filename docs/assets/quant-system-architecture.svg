@@ -11,9 +11,9 @@
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
       <path d="M32 0H0V32" fill="none" stroke="#213c55" stroke-width="1" opacity=".23"/>
     </pattern>
-    <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#22d3ee"/></marker>
-    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#34d399"/></marker>
-    <marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#58758f"/></marker>
+    <marker id="arrow-cyan" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0 0 7 3.5 0 7Z" fill="#22d3ee"/></marker>
+    <marker id="arrow-green" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0 0 7 3.5 0 7Z" fill="#34d399"/></marker>
+    <marker id="arrow-dim" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0 0 7 3.5 0 7Z" fill="#58758f"/></marker>
     <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <style>
       text{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Microsoft YaHei",sans-serif}.ink{fill:#e6f4ff}.muted{fill:#86a0b8}.dim{fill:#557089}.cyan{fill:#22d3ee}.green{fill:#34d399}.amber{fill:#fbbf24}
@@ -67,11 +67,11 @@
       <text y="14" class="lane-label cyan">01 / MARKET DATA &amp; CAUSALITY</text>
       <rect y="28" width="864" height="92" rx="8" class="core-boundary"/>
       <g transform="translate(16 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">QMT MARKET DATA</text><text x="13" y="43" class="node-copy muted">已完成 OHLCV 日线</text></g>
-      <path d="M200 74H228" class="wire"/>
+      <path d="M202 74H220" class="wire"/>
       <g transform="translate(228 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">SESSION GUARD</text><text x="13" y="43" class="node-copy muted">XSHG 会话逐日核验</text></g>
-      <path d="M412 74H440" class="wire"/>
+      <path d="M414 74H432" class="wire"/>
       <g transform="translate(440 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">SIGNAL VIEW</text><text x="13" y="43" class="node-copy muted">因果连续 · 原始成交</text></g>
-      <path d="M624 74H652" class="wire"/>
+      <path d="M626 74H644" class="wire"/>
       <g transform="translate(652 44)"><rect width="196" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">FEATURE FRAME</text><text x="13" y="43" class="node-copy muted">无未来数据快照</text></g>
     </g>
 
@@ -96,8 +96,8 @@
     </g>
 
     <!-- cross plane arrows -->
-    <path d="M452 356H472" class="wire"/>
-    <path d="M452 170V202H226V218" class="wire"/>
+    <path d="M434 293H464" class="wire"/>
+    <path d="M452 170V196H226V210" class="wire"/>
 
     <!-- risk + execution -->
     <g transform="translate(20 410)">
@@ -112,8 +112,8 @@
       <g transform="translate(16 47)"><rect width="178" height="78" rx="6" class="node"/><text x="13" y="24" class="node-title ink">ORDER PLANNER</text><text x="13" y="45" class="node-copy muted">整手 · 免交易带 · 先卖</text><text x="13" y="63" class="tiny dim">IDEMPOTENT PLAN ID</text></g>
       <g transform="translate(218 47)"><rect width="178" height="78" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">QMT GATEWAY</text><text x="13" y="45" class="node-copy muted">账本 · 对账 · 成交去重</text><text x="13" y="63" class="tiny green">DRY-RUN BY DEFAULT</text></g>
     </g>
-    <path d="M678 368V410" class="wire"/>
-    <path d="M432 495H472" class="wire-green"/>
+    <path d="M678 370V430" class="wire"/>
+    <path d="M434 495H464" class="wire-green"/>
 
     <!-- telemetry bus -->
     <g transform="translate(20 574)">
@@ -139,12 +139,12 @@
     <g transform="translate(18 360)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">EXECUTE</text><text x="13" y="43" class="node-copy muted">受保护订单批次</text></g>
     <path d="M92 420V448" class="wire-green"/>
     <g transform="translate(18 448)"><rect width="148" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">RECONCILE</text><text x="13" y="43" class="node-copy muted">成交驱动账本</text></g>
-    <text x="18" y="558" class="tiny dim">SAFETY STATE</text><text x="18" y="578" class="node-copy muted">账户绑定 · 同代码混仓拒绝</text><text x="18" y="595" class="node-copy muted">在途单锁 · 报价新鲜度</text>
+    <text x="18" y="558" class="tiny dim">SAFETY STATE</text><text x="18" y="578" class="tiny muted">账户绑定 · 混仓拒绝</text><text x="18" y="595" class="tiny muted">在途单锁 · 报价新鲜度</text>
   </g>
 
   <!-- shared-core connectors -->
-  <path d="M242 468H268" class="wire-dim dash"/>
-  <path d="M1172 468H1198" class="wire-green dash"/>
+  <path d="M244 468H260" class="wire-dim dash"/>
+  <path d="M1174 468H1190" class="wire-green dash"/>
 
   <!-- footer -->
   <g transform="translate(58 826)">

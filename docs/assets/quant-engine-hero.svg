@@ -22,8 +22,8 @@
       <feGaussianBlur stdDeviation="7" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-      <path d="M0 0 10 5 0 10Z" fill="#22d3ee"/>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 8 4 0 8Z" fill="#22d3ee"/>
     </marker>
     <style>
       text{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Microsoft YaHei",sans-serif}
@@ -66,7 +66,7 @@
 
   <!-- integrated pipeline -->
   <g transform="translate(70 412)">
-    <path d="M122 38H172M302 38H352M482 38H532M662 38H712" class="wire" marker-end="url(#arrow)"/>
+    <path d="M122 38H169M302 38H349M482 38H529M662 38H709" class="wire" marker-end="url(#arrow)"/>
     <g>
       <rect width="120" height="76" rx="8" class="terminal"/>
       <text x="14" y="25" class="node-title cyan mono">01 / DATA</text>
