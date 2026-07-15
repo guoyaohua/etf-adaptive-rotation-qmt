@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">ETF 自适应轮动系统架构</title>
+  <desc id="desc">系统以 QMT 行情和上交所日历为输入，通过因果数据平面、趋势动量信号、组合构建、风险内核、订单执行和状态审计形成完整闭环。研究路径与实盘路径共享确定性的策略核心，实盘默认仅生成计划。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b14"/><stop offset="1" stop-color="#0a1728"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0a2534"/><stop offset="1" stop-color="#0b1c2f"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#213c55" stroke-width="1" opacity=".23"/>
+    </pattern>
+    <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#22d3ee"/></marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#34d399"/></marker>
+    <marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#58758f"/></marker>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      text{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Microsoft YaHei",sans-serif}.ink{fill:#e6f4ff}.muted{fill:#86a0b8}.dim{fill:#557089}.cyan{fill:#22d3ee}.green{fill:#34d399}.amber{fill:#fbbf24}
+      .title{font-size:31px;font-weight:700}.subtitle{font-size:14px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:2.3px}.lane-label{font-size:11px;font-weight:700;letter-spacing:1.5px}.node-title{font-size:14px;font-weight:700}.node-copy{font-size:11px}.tiny{font-size:10px}.status{font-size:11px;font-weight:700;letter-spacing:1px}
+      .boundary{fill:#071321;stroke:#24435d;stroke-width:1}.core-boundary{fill:url(#core);stroke:#26718a;stroke-width:1.4}.node{fill:#0a1929;stroke:#2a4963;stroke-width:1}.node-cyan{fill:#092230;stroke:#23758a;stroke-width:1}.node-green{fill:#09231f;stroke:#1d7056;stroke-width:1}.node-amber{fill:#261d0b;stroke:#8a641c;stroke-width:1}.rail{fill:#07111e;stroke:#223d56;stroke-width:1}.wire{fill:none;stroke:#22d3ee;stroke-width:1.35;marker-end:url(#arrow-cyan)}.wire-green{fill:none;stroke:#34d399;stroke-width:1.35;marker-end:url(#arrow-green)}.wire-dim{fill:none;stroke:#58758f;stroke-width:1.15;marker-end:url(#arrow-dim)}.dash{stroke-dasharray:5 6}.separator{stroke:#25425b;stroke-width:1}.port{fill:#22d3ee}.port-green{fill:#34d399}
+    </style>
+  </defs>
+
+  <rect width="1440" height="900" rx="28" fill="url(#bg)"/>
+  <rect width="1440" height="900" rx="28" fill="url(#grid)"/>
+
+  <!-- header -->
+  <g transform="translate(58 45)">
+    <text class="eyebrow cyan">SYSTEM BLUEPRINT / UNIFIED QUANT STACK</text>
+    <text y="46" class="title ink">从研究内核到受保护实盘：同一条确定性决策链</text>
+    <text y="76" class="subtitle muted">数据边界、信号、组合、风险、执行与审计解耦；回测、离线信号和 QMT 实盘复用同一策略核心。</text>
+  </g>
+  <g transform="translate(1174 50)">
+    <rect width="208" height="48" rx="6" class="node-green"/>
+    <g transform="translate(16 16)" filter="url(#glow)"><circle r="4" fill="#34d399"/></g>
+    <text x="31" y="21" class="status green">FAIL-CLOSED</text>
+    <text x="16" y="38" class="tiny muted">任何关键校验失败即停止</text>
+  </g>
+
+  <!-- left research rail -->
+  <g transform="translate(58 156)">
+    <rect width="184" height="626" rx="12" class="rail"/>
+    <text x="18" y="31" class="lane-label cyan">RESEARCH PLANE</text>
+    <text x="18" y="53" class="tiny dim">离线、可复现、可审计</text>
+    <line x1="18" y1="72" x2="166" y2="72" class="separator"/>
+    <g transform="translate(18 96)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">BACKTEST</text><text x="13" y="43" class="node-copy muted">下一交易日开盘</text></g>
+    <path d="M92 156V184" class="wire-dim"/>
+    <g transform="translate(18 184)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">STRESS TEST</text><text x="13" y="43" class="node-copy muted">2× / 3× 成本</text></g>
+    <path d="M92 244V272" class="wire-dim"/>
+    <g transform="translate(18 272)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">ROLLING WINDOW</text><text x="13" y="43" class="node-copy muted">滚动三年稳定性</text></g>
+    <path d="M92 332V360" class="wire-dim"/>
+    <g transform="translate(18 360)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">CAUSAL AUDIT</text><text x="13" y="43" class="node-copy muted">前缀不变性</text></g>
+    <path d="M92 420V448" class="wire-dim"/>
+    <g transform="translate(18 448)"><rect width="148" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">VALIDATION</text><text x="13" y="43" class="node-copy muted">门槛化研究报告</text></g>
+    <text x="18" y="558" class="tiny dim">OUTPUT</text><text x="18" y="578" class="node-copy muted">净值 · 成交 · 目标</text><text x="18" y="595" class="node-copy muted">指标 · 验证证据</text>
+  </g>
+
+  <!-- center system boundary -->
+  <g transform="translate(268 156)">
+    <rect width="904" height="626" rx="12" class="boundary"/>
+    <text x="20" y="28" class="lane-label muted">DETERMINISTIC STRATEGY CORE</text>
+    <text x="882" y="28" text-anchor="end" class="tiny dim">src/etf_rotation/*</text>
+
+    <!-- data plane -->
+    <g transform="translate(20 50)">
+      <text y="14" class="lane-label cyan">01 / MARKET DATA &amp; CAUSALITY</text>
+      <rect y="28" width="864" height="92" rx="8" class="core-boundary"/>
+      <g transform="translate(16 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">QMT MARKET DATA</text><text x="13" y="43" class="node-copy muted">已完成 OHLCV 日线</text></g>
+      <path d="M200 74H228" class="wire"/>
+      <g transform="translate(228 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">SESSION GUARD</text><text x="13" y="43" class="node-copy muted">XSHG 会话逐日核验</text></g>
+      <path d="M412 74H440" class="wire"/>
+      <g transform="translate(440 44)"><rect width="184" height="60" rx="6" class="node-cyan"/><text x="13" y="24" class="node-title ink">SIGNAL VIEW</text><text x="13" y="43" class="node-copy muted">因果连续 · 原始成交</text></g>
+      <path d="M624 74H652" class="wire"/>
+      <g transform="translate(652 44)"><rect width="196" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">FEATURE FRAME</text><text x="13" y="43" class="node-copy muted">无未来数据快照</text></g>
+    </g>
+
+    <!-- alpha plane -->
+    <g transform="translate(20 190)">
+      <text y="14" class="lane-label cyan">02 / ALPHA ENGINE</text>
+      <rect y="28" width="412" height="150" rx="8" class="core-boundary"/>
+      <g transform="translate(16 47)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">TREND GATE</text><text x="13" y="38" class="tiny muted">SMA + EMA SLOPE</text></g>
+      <g transform="translate(218 47)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">MOMENTUM</text><text x="13" y="38" class="tiny muted">20 / 60 / 120 · SKIP 5</text></g>
+      <g transform="translate(16 112)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">RISK SCORE</text><text x="13" y="38" class="tiny muted">MOM / VOL^0.75</text></g>
+      <g transform="translate(218 112)"><rect width="178" height="48" rx="6" class="node-green"/><text x="13" y="21" class="node-title green">SELECT TOP-K</text><text x="13" y="38" class="tiny muted">GROUP + CORRELATION</text></g>
+    </g>
+
+    <!-- portfolio plane -->
+    <g transform="translate(472 190)">
+      <text y="14" class="lane-label cyan">03 / PORTFOLIO CONSTRUCTION</text>
+      <rect y="28" width="412" height="150" rx="8" class="core-boundary"/>
+      <g transform="translate(16 47)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">INVERSE VOL</text><text x="13" y="38" class="tiny muted">INVERSE-VOL SEED</text></g>
+      <g transform="translate(218 47)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">VOL TARGET</text><text x="13" y="38" class="tiny muted">10% · NO LEVERAGE</text></g>
+      <g transform="translate(16 112)"><rect width="178" height="48" rx="6" class="node"/><text x="13" y="21" class="node-title ink">4× SLEEVES</text><text x="13" y="38" class="tiny muted">STAGGERED WEEKLY</text></g>
+      <g transform="translate(218 112)"><rect width="178" height="48" rx="6" class="node-green"/><text x="13" y="21" class="node-title green">TARGET WEIGHTS</text><text x="13" y="38" class="tiny muted">CASH PROXY OPTIONAL</text></g>
+    </g>
+
+    <!-- cross plane arrows -->
+    <path d="M452 356H472" class="wire"/>
+    <path d="M452 170V202H226V218" class="wire"/>
+
+    <!-- risk + execution -->
+    <g transform="translate(20 410)">
+      <text y="14" class="lane-label cyan">04 / RISK KERNEL</text>
+      <rect y="28" width="412" height="114" rx="8" class="core-boundary"/>
+      <g transform="translate(16 47)"><rect width="178" height="78" rx="6" class="node-amber"/><text x="13" y="24" class="node-title amber">POSITION RISK</text><text x="13" y="45" class="node-copy muted">ATR 初始 / 跟踪止损</text><text x="13" y="63" class="tiny dim">PRICE-LEVEL STATE</text></g>
+      <g transform="translate(218 47)"><rect width="178" height="78" rx="6" class="node-amber"/><text x="13" y="24" class="node-title amber">PORTFOLIO RISK</text><text x="13" y="45" class="node-copy muted">回撤 / 单日亏损 / 冷却</text><text x="13" y="63" class="tiny dim">CIRCUIT BREAKER</text></g>
+    </g>
+    <g transform="translate(472 410)">
+      <text y="14" class="lane-label cyan">05 / EXECUTION &amp; STATE</text>
+      <rect y="28" width="412" height="114" rx="8" class="core-boundary"/>
+      <g transform="translate(16 47)"><rect width="178" height="78" rx="6" class="node"/><text x="13" y="24" class="node-title ink">ORDER PLANNER</text><text x="13" y="45" class="node-copy muted">整手 · 免交易带 · 先卖</text><text x="13" y="63" class="tiny dim">IDEMPOTENT PLAN ID</text></g>
+      <g transform="translate(218 47)"><rect width="178" height="78" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">QMT GATEWAY</text><text x="13" y="45" class="node-copy muted">账本 · 对账 · 成交去重</text><text x="13" y="63" class="tiny green">DRY-RUN BY DEFAULT</text></g>
+    </g>
+    <path d="M678 368V410" class="wire"/>
+    <path d="M432 495H472" class="wire-green"/>
+
+    <!-- telemetry bus -->
+    <g transform="translate(20 574)">
+      <line x1="0" y1="0" x2="864" y2="0" stroke="#34d399" stroke-width="1" opacity=".65"/>
+      <circle cx="0" r="4" class="port-green"/><circle cx="864" r="4" class="port-green"/>
+      <text y="24" class="lane-label green">AUDIT BUS</text>
+      <text x="112" y="24" class="node-copy muted">配置指纹</text><text x="220" y="24" class="node-copy muted">目标快照</text><text x="328" y="24" class="node-copy muted">风险状态</text><text x="436" y="24" class="node-copy muted">计划 ID</text><text x="530" y="24" class="node-copy muted">成交 ID</text><text x="625" y="24" class="node-copy muted">持仓账本</text><text x="733" y="24" class="node-copy muted">研究报告</text>
+    </g>
+  </g>
+
+  <!-- right live rail -->
+  <g transform="translate(1198 156)">
+    <rect width="184" height="626" rx="12" class="rail"/>
+    <text x="18" y="31" class="lane-label green">LIVE CONTROL</text>
+    <text x="18" y="53" class="tiny dim">显式授权、状态持久化</text>
+    <line x1="18" y1="72" x2="166" y2="72" class="separator"/>
+    <g transform="translate(18 96)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">SIGNAL</text><text x="13" y="43" class="node-copy muted">生成周度目标</text></g>
+    <path d="M92 156V184" class="wire-green"/>
+    <g transform="translate(18 184)"><rect width="148" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">DRY-RUN</text><text x="13" y="43" class="node-copy muted">预览订单计划</text></g>
+    <path d="M92 244V272" class="wire-green"/>
+    <g transform="translate(18 272)"><rect width="148" height="60" rx="6" class="node-amber"/><text x="13" y="24" class="node-title amber">3-WAY ARM</text><text x="13" y="43" class="node-copy muted">配置 · 命令 · 人工</text></g>
+    <path d="M92 332V360" class="wire-green"/>
+    <g transform="translate(18 360)"><rect width="148" height="60" rx="6" class="node"/><text x="13" y="24" class="node-title ink">EXECUTE</text><text x="13" y="43" class="node-copy muted">受保护订单批次</text></g>
+    <path d="M92 420V448" class="wire-green"/>
+    <g transform="translate(18 448)"><rect width="148" height="60" rx="6" class="node-green"/><text x="13" y="24" class="node-title green">RECONCILE</text><text x="13" y="43" class="node-copy muted">成交驱动账本</text></g>
+    <text x="18" y="558" class="tiny dim">SAFETY STATE</text><text x="18" y="578" class="node-copy muted">账户绑定 · 同代码混仓拒绝</text><text x="18" y="595" class="node-copy muted">在途单锁 · 报价新鲜度</text>
+  </g>
+
+  <!-- shared-core connectors -->
+  <path d="M242 468H268" class="wire-dim dash"/>
+  <path d="M1172 468H1198" class="wire-green dash"/>
+
+  <!-- footer -->
+  <g transform="translate(58 826)">
+    <circle cx="5" cy="5" r="4" class="port"/><text x="18" y="9" class="tiny muted">ONE CORE / MULTIPLE SURFACES</text>
+    <text x="328" y="9" class="tiny dim">BACKTEST</text><text x="415" y="9" class="tiny dim">SIGNAL</text><text x="486" y="9" class="tiny dim">LIVE-ONCE</text><text x="584" y="9" class="tiny dim">LIVE-MONITOR</text><text x="711" y="9" class="tiny dim">RECONCILE</text>
+    <text x="1324" y="9" text-anchor="end" class="tiny dim">QMT / XTQUANT · PYTHON 3.10+</text>
+  </g>
+</svg>

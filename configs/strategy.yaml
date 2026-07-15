@@ -1,6 +1,6 @@
 project:
   name: "ETF Adaptive Rotation for QMT"
-  strategy_version: "0.5.1"
+  strategy_version: "0.5.2"
   timezone: "Asia/Shanghai"
 
 universe:

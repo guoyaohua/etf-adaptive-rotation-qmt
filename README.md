@@ -1,127 +1,191 @@
-# QMT ETF 自适应轮动
+<div align="center">
 
-> 用趋势与多周期动量选择强势 ETF，用四周错峰组合降低择时偶然性，用波动率预算和多层安全锁控制风险。
+<img src="docs/assets/etf-rotation-logo.svg" width="112" alt="ETF Adaptive Rotation 项目 Logo">
+
+# ETF Adaptive Rotation // QMT Quant Engine
+
+### 自托管、多资产、可复现、受保护执行的 ETF 量化投资系统
+
+将因果行情、趋势动量、组合构建、风险内核、QMT 执行和研究审计连接为一条可复现、可审计的工程链路；策略计算保持确定性，真实成交由账本与对账约束。
 
 [![CI](https://github.com/guoyaohua/etf-adaptive-rotation-qmt/actions/workflows/ci.yml/badge.svg)](https://github.com/guoyaohua/etf-adaptive-rotation-qmt/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
-[![QMT](https://img.shields.io/badge/QMT-xtquant-0F766E.svg)](https://github.com/guoyaohua/etf-adaptive-rotation-qmt)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![QMT](https://img.shields.io/badge/QMT-xtquant-00B8D9.svg)](https://github.com/guoyaohua/etf-adaptive-rotation-qmt)
+[![Tests](https://img.shields.io/badge/tests-134%20passed-16A085.svg)](tests)
+[![License](https://img.shields.io/badge/license-MIT-22C55E.svg)](LICENSE)
 
-当前策略版本：`v0.5.1`
+当前策略版本：`v0.5.2`
 
-[快速开始](docs/QUICKSTART.md) · [策略详解](docs/STRATEGY.md) · [验证规范](docs/VALIDATION.md) · [版本记录](docs/STRATEGY_UPDATES.md) · [Pages 评估](docs/PAGES.md)
+[快速启动](#最短启动路径) · [系统架构](#系统架构) · [策略内核](#alpha--portfolio-engine) · [研究证据](#经审计的研究证据) · [完整文档](#工程导航)
 
-这是一个面向 QMT/xtquant 的日线级 ETF 轮动系统。它会在跨境股票、黄金和国债 ETF 中选择趋势更强、风险调整后表现更好的资产，并用货币 ETF 管理部分闲置资金。项目同时提供无未来函数回测、稳健性验证、模拟信号、账户绑定账本和默认关闭的受保护实盘入口。
+</div>
+
+![ETF Adaptive Rotation 独立量化投资系统主视觉](docs/assets/quant-engine-hero.svg)
 
 > [!IMPORTANT]
-> “T+0 ETF”描述的是标的交易资格，不代表策略进行日内高频交易。策略通常每周更新一次目标，单份子组合约持有四周。历史回测不保证未来盈利，真实下单默认关闭。
+> 这是日线级趋势轮动系统，不是高频交易机器人。决策使用当日已完成收盘数据，目标最早于下一交易日执行；真实下单默认关闭。历史研究只描述既定数据与假设下的表现，不保证未来盈利。
 
-## 它解决什么问题
+## 一个仓库，完整量化闭环
 
-| 常见问题 | 本项目的处理 |
-|---|---|
-| 一次调仓日决定结果 | 四个周度子组合错峰更新，分散日期风险 |
-| “跌得少”也被迫买入 | 长期趋势、EMA 斜率和正动量三重过滤 |
-| 高波动资产占仓过重 | 风险调整排名、逆波动率权重和 10% 波动率预算 |
-| 回测偷看未来 | 收盘生成信号，最早下一交易日开盘执行 |
-| 低波资产被噪声洗出 | ATR 止损带 1.5% 最小距离 |
-| 现金长期闲置 | 黑窗外最多 30% 配置货币 ETF，且不参加主排名 |
-| 实盘重复下单或误卖 | 账户绑定账本、成交去重、计划幂等和人工确认 |
-| 行情缺口被当成休市 | QMT 行情与 `XSHG` 交易日历逐日核对 |
+项目不是一段选股脚本，也不止是一份回测报告。它把策略从原始日线推进到可审计订单，并让研究与运行复用同一个确定性策略内核。
 
-## 经审计的研究快照
+| 系统层 | 核心能力 | 工程输出 |
+|---|---|---|
+| **Market Data Fabric** | QMT 日线下载、12 只 ETF 数据校验、`XSHG` 会话核验、因果连续信号视图 | 行情缓存、完成日边界、会话指纹 |
+| **Alpha Signal Core** | 长期趋势、EMA 斜率、多周期动量、风险调整横截面排名 | 周度目标、候选分数、诊断状态 |
+| **Portfolio Engine** | 风险组去重、相关性过滤、逆波动率、10% 波动率上限、四周错峰 | 组合权重、闲置资金预算 |
+| **Risk Kernel** | ATR 初始/跟踪止损、组合回撤、单日亏损、冷却与退出锁存 | 风险缩放、退出计划、状态机 |
+| **QMT Execution Gateway** | 整手订单、免交易带、先卖后买、稳定计划 ID、重复提交防护 | dry-run 计划、QMT 委托、持仓账本 |
+| **Validation & Audit Lab** | 成本压力、滚动窗口、前缀不变性、代码/配置/行情 SHA-256 | 净值、成交、指标、门槛化验证报告 |
 
-数据区间为 `2015-01-05` 至 `2026-07-10`，初始权益 100 万元。以下是纯量化 v0.5.0 基线；v0.5.1 只改善文档和图示，不改变交易决策。
+**18 个 Python 模块 · 8 个 CLI 子命令 · 134 项自动化测试 · 12 只跨资产 ETF · 1 套共享信号与组合内核**
 
-| 指标 | 基础成本 | 2× 成本 | 3× 成本 |
-|---|---:|---:|---:|
-| CAGR | **5.83%** | 4.92% | 3.97% |
-| 累计收益 | **91.96%** | 73.77% | 56.56% |
-| 最大回撤 | 6.46% | 6.65% | 6.83% |
-| Sharpe | 1.004 | 0.854 | 0.695 |
-| Calmar | 0.902 | 0.740 | 0.581 |
+## 系统架构
 
-- 10/10 个滚动三年窗口为正收益，最差 CAGR 为 2.36%；
-- 前缀不变性通过，说明未来数据没有改写历史结果；
-- `2798/2798` 个 `XSHG` 会话逐日一致；
-- 结果已计佣金与滑点，但没有覆盖未来制度、极端折溢价和真实盘口冲击。
+![ETF 自适应轮动系统架构拓扑](docs/assets/quant-system-architecture.svg)
 
-![v0.5.0 研究结果摘要](docs/assets/research-results.svg)
+研究平面和实盘控制平面共享 `src/etf_rotation` 中的信号、组合、调度与配置语义；回测风控和实时风控使用同一组参数与状态含义，并分别针对历史 OHLC 和实时快照实现：
 
-> [!WARNING]
-> 历史区间已经参与策略研究，且现存 ETF 列表存在幸存者偏差。上述结果只支持继续向前模拟，不是收益承诺。
+- **研究平面**重放“收盘决策、下一交易日开盘执行”的因果撮合，执行 1× / 2× / 3× 成本压力、滚动三年窗口与未来数据污染检查；
+- **策略核心**把原始成交价格与连续信号价格分离，所有目标都带版本和诊断信息；
+- **实盘控制平面**先生成计划，只有配置开关、命令开关和人工确认同时满足时才可能提交订单；
+- **审计层**分别保存目标、风险状态、计划 ID、成交 ID 与持仓账本；验证报告另行绑定代码、配置、行情和会话指纹。
 
-## 30 秒看懂策略
+任何关键输入缺失、行情会话异常、报价过期、账户归属冲突或计划状态不确定，流程都会 **fail closed**：拒绝继续，而不是猜测执行。
 
-![策略从日线到订单的主流程](docs/assets/strategy-flow.svg)
+## Alpha + Portfolio Engine
 
-1. **读取已完成日线**：只使用决策日收盘及以前的数据。
-2. **过滤弱势资产**：检查流动性、长期趋势、EMA 斜率和正动量。
-3. **比较谁更强**：组合跳过最近 5 日的 20/60/120 日动量，再做风险调整排名。
-4. **控制集中风险**：同一风险组最多一只，并过滤过高相关性。
-5. **决定买多少**：逆波动率分配，缩放到 10% 目标波动率，单资产不超过 40%，总仓位不超过 90%。
-6. **聚合四份信号**：每周更新一份，完整组合是最近四份信号的平均。
-7. **通过风险闸门**：ATR 止损、组合回撤、单日亏损和账户安全锁均可阻止或缩减订单。
-8. **下一交易日执行**：先卖后买，小于 1% 的现有持仓微调可忽略。
+![从因果日线到风险预算目标的 Alpha 与组合构建引擎](docs/assets/alpha-portfolio-engine.svg)
 
-核心动量与排名公式：
+### 01 / 从绝对趋势到横截面 Alpha
+
+引擎先用长期均线、EMA 斜率与正动量删除弱趋势资产，再组合跳过最近 5 日的 20 / 60 / 120 日收益：
 
 $$
 M_i = 0.20R_{20,i}^{(-5)} + 0.30R_{60,i}^{(-5)} + 0.50R_{120,i}^{(-5)}
 $$
 
+横截面分数对波动率施加非线性惩罚，形成统一的风险调整排序分数：
+
 $$
 Score_i = \frac{M_i}{\max(\sigma_{40,i}, 0.10)^{0.75}}
 $$
 
-权重从逆波动率开始：
+随后执行风险组去重与 60 日相关性过滤，避免多个高度同质的 ETF 同时占用组合预算。
+
+### 02 / 从 Alpha 到可执行权重
+
+入选资产以逆波动率作为初始风险预算：
 
 $$
 w_i = \frac{1 / \sigma_i}{\sum_j (1 / \sigma_j)}
 $$
 
-完整推导、筛选边界和参数说明见 [策略详解](docs/STRATEGY.md)。
+当预估年化波动率超过 10% 时，组合只向下缩放；低波动组合不会通过杠杆补足至 10%。权重同时受单资产 40% 与总敞口 90% 约束。完整资金由 A / B / C / D 四个周度子组合构成，每周仅替换一份旧信号，降低单一调仓日对整个组合的影响。
 
-## 为什么是“四周错峰”
+```text
+WEEK t-3        WEEK t-2        WEEK t-1        WEEK t
+A: signal α  ─────────────────────────────────── replace
+B: signal β  ───────────────────────── update
+C: signal γ  ─────────────── update
+D: signal δ  ───── update
 
-完整资金被视为 A/B/C/D 四份，每份占 25%。每周最后一个 `XSHG` 交易日只产生一份新信号，替换约四周前的旧信号。
+portfolio(t) = 25% × (A + B + C + D)
+```
 
-![四份周度子组合的错峰时间轴](docs/assets/staggered-sleeves.svg)
+当主资产没有用完风险预算时，货币 ETF `511880.SH` 最多承接 30%；它不参与主排名，并在年末收益分配黑窗强制退出。
 
-这不是“每四周一次性换仓”，也不是“每周把全仓推倒重来”。它让单个调仓日的偶然行情只影响四分之一组合。
+## Risk Kernel + Execution Gateway
 
-## 闲置资金如何处理
+风险不是回测结束后再贴上的一条止损线，而是贯穿目标、计划、提交和成交对账的状态机。
 
-当主资产没有用完风险预算时，`511880.SH` 可承接最多 30% 的组合资金，但它：
+| 风险域 | 默认约束 | 系统行为 |
+|---|---:|---|
+| 头寸风险 | 初始止损 = 入场价 − max(2.5 × 入场 ATR, 1.5% × 入场价) | 触发后锁存退出，直至成交对账确认持仓消失 |
+| 盈利保护 | 浮盈 1.5 × ATR 后启用 3 × ATR 跟踪止损 | 收紧退出价格，不反向放大仓位 |
+| 组合软回撤 | 8% | 后续目标风险缩放至 50% |
+| 组合硬回撤 | 12% | 触发全仓退出并进入 10 个交易日冷却；回测在下一可用开盘执行 |
+| 单日亏损 | 2% | 触发全仓退出并进入 5 个交易日冷却；回测在下一可用开盘执行 |
+| 实盘提交完整性 | 报价 ≤ 5 秒、计划 ≤ 20 分钟、账户绑定 | 任一条件不满足即拒绝提交 |
 
-- 不参与主资产排名；
-- 必须保持长期趋势和正动量；
-- 每年 `12-15` 至次年 `01-15` 强制空仓；
-- 回测不虚构现金分红，只用因果连续序列修复信号；
-- 黑窗外出现异常价格复位时安全失败。
+实盘提交需要三重显式授权：
 
-![货币 ETF 的年度持有与强制空仓窗口](docs/assets/cash-proxy-calendar.svg)
+```text
+configs/local.yaml        CLI                   OPERATOR
+allow_live_orders=true  + --execute           + LIVE_ETF_RR
+          └──────────────────┬─────────────────────┘
+                             ▼
+                  QMT order submission
+```
 
-## 风险控制不是一条止损线
+此外，系统会拒绝同代码混仓、重复提交、过期报价和资金越界；部分提交会被锁存并转入人工核对，不能盲目重试。成交按 ID 幂等写入账户绑定账本。可选 LLM 位于量化目标之后，只能返回 `KEEP / REDUCE / EXIT`，不能新增资产、提高权重或绕过风险内核。
 
-![从单资产到实盘账户的分层风险控制](docs/assets/risk-guardrails.svg)
+> `live-monitor` 是前台保护进程，不是券商端常驻止损。窗口关闭、电脑休眠、QMT 或网络中断都会停止监控。
 
-| 层级 | 默认规则 | 作用 |
-|---|---|---|
-| 单资产 | 初始止损：入场价 − max(2.5 × ATR, 1.5%) | 限制单标的损失 |
-| 盈利保护 | 浮盈 1.5 × ATR 后启用 3 × ATR 跟踪止损 | 控制盈利回吐 |
-| 组合软回撤 | 回撤 8% 时，后续目标缩至 50% | 主动降风险 |
-| 组合硬回撤 | 回撤 12% 时清仓并冷却 10 日 | 阻断失控阶段 |
-| 单日亏损 | 亏损 2% 时清仓并冷却 5 日 | 防止异常日扩散 |
-| 实盘安全 | 账户绑定、混仓拒绝、计划幂等、人工确认 | 防误卖与重复下单 |
+## 系统接口
 
-`live-monitor` 是前台保护程序，不是券商端止损或 Windows 服务。窗口关闭、休眠、QMT 或网络断开都会停止保护。
+统一命令 `etf-rr` 暴露完整生命周期，而不是散落的临时脚本：
 
-## 三步开始 dry-run
+```powershell
+etf-rr download      --config configs/local.yaml --start 20150101 --end 20260710
+etf-rr backtest      --config configs/local.yaml --start 20150101 --end 20260710
+etf-rr signal        --config configs/local.yaml --output runtime/latest_signal.json
+etf-rr doctor        --config configs/local.yaml --connect
+etf-rr ledger-init   --config configs/local.yaml --capital 100000
+etf-rr reconcile     --config configs/local.yaml
+etf-rr live-once     --config configs/local.yaml
+etf-rr live-monitor  --config configs/local.yaml
+```
 
-环境要求：Windows、Python 3.10+、已启动并可使用 `xtquant` 的 QMT。
+使用冻结至 `2026-07-10` 的行情、按 `v0.5.2` 代码重放得到的实际信号示例：
 
-### 1. 安装
+```json
+{
+  "strategy_version": "0.5.2",
+  "decision_date": "2026-07-10T00:00:00",
+  "regime": "ensemble_risk_off",
+  "weights": {
+    "513520.SH": 0.120169,
+    "513100.SH": 0.121760,
+    "511260.SH": 0.100000,
+    "511880.SH": 0.300000
+  },
+  "diagnostics": {
+    "eligible_count": 12,
+    "selected_count": 2,
+    "gross_exposure": 0.641929,
+    "sleeves_initialized": 4
+  }
+}
+```
+
+`risk_off` 是市场诊断标签；当前统一配置仍允许所有通过趋势与动量门槛的资产在同一框架中竞争，不应把它理解为强制空仓信号。
+
+## 经审计的研究证据
+
+研究基线冻结于 `v0.5.0`；`v0.5.1` 与 `v0.5.2` 仅更新文档与展示，不改变任何交易决策。数据区间为 `2015-01-05 → 2026-07-10`，初始权益 100 万元，结果已计佣金和滑点。
+
+| 成本场景 | CAGR | 累计收益 | 最大回撤 | Sharpe | Calmar | 成交笔数 |
+|---|---:|---:|---:|---:|---:|---:|
+| **1× 基础成本** | **5.83%** | **91.96%** | **6.46%** | **1.004** | **0.902** | 1,805 |
+| 2× 成本压力 | 4.92% | 73.77% | 6.65% | 0.854 | 0.740 | 1,815 |
+| 3× 成本压力 | 3.97% | 56.56% | 6.83% | 0.695 | 0.581 | 1,801 |
+
+验证并不只看一条最终净值：
+
+- **10 / 10** 个滚动三年窗口 CAGR 为正，最差窗口 CAGR 为 **2.36%**；
+- **2,098** 个净值日、**1,182** 笔成交、**440** 个历史目标通过前缀不变性比较，未来数据没有重写既有结果；
+- 行情 union 与 `XSHG` 日历 **2,798 / 2,798** 个会话一致；
+- 代码、配置、行情和会话序列均生成 SHA-256 指纹；所有验证门槛通过后才允许进入向前模拟。
+
+> [!WARNING]
+> 同一历史区间已经参与策略研究，ETF 池存在幸存者偏差。日线 OHLC 也无法还原盘中路径、极端折溢价、停牌与真实盘口冲击。以上数字是可复核的历史研究证据，不是未来收益目标或承诺。
+
+## 最短启动路径
+
+运行环境：Windows、Python 3.10+、已安装并启动可用 `xtquant` 的 QMT。
+
+### 1 / INSTALL
 
 ```powershell
 git clone https://github.com/guoyaohua/etf-adaptive-rotation-qmt.git
@@ -129,7 +193,7 @@ Set-Location etf-adaptive-rotation-qmt
 .\scripts\install.ps1
 ```
 
-### 2. 本地配置
+### 2 / CONFIGURE
 
 ```powershell
 Copy-Item configs\local.example.yaml configs\local.yaml
@@ -137,51 +201,51 @@ $env:QMT_CLIENT_PATH = '<QMT userdata_mini 路径>'
 $env:QMT_ACCOUNT_ID = '<资金账号>'
 ```
 
-首次使用保持 `qmt.allow_live_orders: false`。账号、路径、Token 和密码不得写入 YAML。
+首次运行必须保持 `qmt.allow_live_orders: false`。资金账号、QMT 路径、Token 与密码只通过环境变量传入；`configs/local.yaml` 仅保存不进入 Git 的非敏感开关。
 
-### 3. 初始化并观察
+### 3 / BOOT IN DRY-RUN
 
 ```powershell
 .\scripts\setup.ps1 -Capital 100000 -Connect
 .\scripts\live.ps1
 ```
 
-默认只生成计划，不提交订单。完整安装、回测、模拟盘和实盘步骤见 [快速开始](docs/QUICKSTART.md)。
+连续交易时段内，`live.ps1` 默认生成 `runtime/latest_order_plan.json` 而不提交订单；闭市时，`setup.ps1` 改为输出 `runtime/latest_signal.json`，`live.ps1` 会安全停止。建议先完成回测和至少 20 个交易日的向前模拟，再单独评估实盘开关。完整步骤见 [快速开始](docs/QUICKSTART.md)。
 
-## 文档导航
+## 工程导航
 
-| 想了解什么 | 文档 |
+| 路径 | 用途 |
 |---|---|
-| 安装、初始化、dry-run、实盘开关 | [快速开始](docs/QUICKSTART.md) |
-| 策略公式、调度与边界条件 | [策略详解](docs/STRATEGY.md) |
-| 回测口径、成本压力与上线门槛 | [验证规范](docs/VALIDATION.md) |
-| 命令、输入与本地产物 | [运行手册](docs/OPERATIONS.md) |
-| 可选 LLM 风险复核 | [LLM 说明](docs/LLM.md) |
-| 账户、Token 与提交安全 | [安全规范](docs/SECURITY.md) |
-| 每个版本改了什么 | [追加式版本记录](docs/STRATEGY_UPDATES.md) |
-| 是否建设 GitHub Pages | [Pages 建设评估](docs/PAGES.md) |
+| [`src/etf_rotation/`](src/etf_rotation) | 数据、策略、回测、风险、执行、验证的共享核心 |
+| [`configs/strategy.yaml`](configs/strategy.yaml) | 可审计的策略、风险、执行和验证参数 |
+| [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | 安装、初始化、dry-run 与实盘启用流程 |
+| [`docs/STRATEGY.md`](docs/STRATEGY.md) | 信号公式、组合调度与策略边界 |
+| [`docs/VALIDATION.md`](docs/VALIDATION.md) | 回测口径、压力测试和上线门槛 |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | CLI、运行产物与故障处理 |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | 账户、密钥、订单提交与本地状态安全 |
+| [`docs/LLM.md`](docs/LLM.md) | 可选 LLM 风险复核及权限边界 |
+| [`docs/STRATEGY_UPDATES.md`](docs/STRATEGY_UPDATES.md) | 每个完整版本的追加式更新记录 |
+| [`docs/PAGES.md`](docs/PAGES.md) | GitHub Pages 建设可行性与部署建议 |
 
-## 项目边界
+本地产物 `data/qmt/`、`reports/`、`runtime/` 以及 `configs/local.yaml` 均不会提交 Git。
 
-- 不预测下一日涨跌，不使用杠杆、融资或卖空；
-- 不因为标的是 T+0 就进行日内反复交易；
-- 不处理实时 IOPV、申赎额度和海外休市错位；
-- 日线 OHLC 无法还原盘中路径、极端跳空和真实盘口冲击；
-- QMT 没有可可靠对账的策略级分红流水，因此货币 ETF 在年末黑窗强制空仓；
-- 部分成交、撤单、进程中断和券商差异仍须在模拟盘逐项验证；
-- 可选 LLM 只能减仓，且必须单独做时间封存的向前验证。
-
-## 本地验证
+## 验证项目本身
 
 ```powershell
-python -m pytest
+python -m pytest -q
 python -m compileall -q src tests scripts
 python scripts/security_check.py
 .\scripts\validate.ps1 -Start 20150101 -End 20260710
 ```
 
-`data/qmt/`、`reports/`、`runtime/` 和本地配置均不进入 Git。
+## 项目边界
 
-## 免责声明
+- 不使用单日涨跌预测模型，不使用融资、杠杆、卖空或日内反复交易；
+- “T+0 ETF”只描述标的交易资格，策略仍按日线收盘决策、下一交易日执行；
+- 不处理实时 IOPV、申赎额度、海外休市错位和券商端永久止损；
+- QMT 部分成交、撤单、进程中断和券商差异必须在各自环境中继续模拟验证；
+- LLM 默认关闭，且不进入公开研究基线。
 
-本项目仅用于量化研究和软件工程示例，不构成投资建议、收益承诺或代客理财服务。使用者应独立核实交易规则、费用、税务与风险，并自行承担交易损失。
+## License & Disclaimer
+
+[MIT License](LICENSE)。本项目仅用于量化研究和软件工程实践，不构成投资建议、收益承诺或代客理财服务。使用者应独立核实交易规则、费用、税务和风险，并自行承担交易损失。

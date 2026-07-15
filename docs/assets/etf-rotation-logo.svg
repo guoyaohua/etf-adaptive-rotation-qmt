@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">ETF Adaptive Rotation 项目标志</title>
+  <desc id="desc">青色与绿色构成的环形轮动轨道，围绕三根上升的量化信号柱，象征 ETF 轮动、风险预算与受保护执行。</desc>
+  <defs>
+    <linearGradient id="ring" x1="40" y1="35" x2="202" y2="205" gradientUnits="userSpaceOnUse"><stop stop-color="#22D3EE"/><stop offset="1" stop-color="#34D399"/></linearGradient>
+    <linearGradient id="face" x1="42" y1="30" x2="198" y2="214" gradientUnits="userSpaceOnUse"><stop stop-color="#0B2032"/><stop offset="1" stop-color="#071321"/></linearGradient>
+  </defs>
+  <rect x="8" y="8" width="224" height="224" rx="52" fill="url(#face)" stroke="#28445E" stroke-width="4"/>
+  <path d="M188 80a78 78 0 0 0-128-14" fill="none" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <path d="m57 48 4 20 20-4" fill="none" stroke="#22D3EE" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 160a78 78 0 0 0 128 14" fill="none" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <path d="m183 192-4-20-20 4" fill="none" stroke="#34D399" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="72" y="126" width="22" height="34" rx="5" fill="#31506B"/><rect x="109" y="101" width="22" height="59" rx="5" fill="#22D3EE"/><rect x="146" y="73" width="22" height="87" rx="5" fill="#34D399"/>
+  <path d="M70 173h100" stroke="#7790AA" stroke-width="5" stroke-linecap="round"/>
+</svg>

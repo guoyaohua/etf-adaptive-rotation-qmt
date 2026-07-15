@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="720" viewBox="0 0 1440 720" role="img" aria-labelledby="title desc">
+  <title id="title">ETF Adaptive Rotation 独立量化投资系统</title>
+  <desc id="desc">深色量化终端风格主视觉，展示从市场数据、阿尔法信号、组合构建、风险内核到受保护执行的完整链路，并标注历史研究中的年化收益、最大回撤和滚动窗口结果。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b14"/>
+      <stop offset="0.58" stop-color="#081526"/>
+      <stop offset="1" stop-color="#0a1a2f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#28415b" stroke-width="1" opacity="0.30"/>
+    </pattern>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#22d3ee"/>
+    </marker>
+    <style>
+      text{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Microsoft YaHei",sans-serif}
+      .mono{font-family:"Cascadia Code","JetBrains Mono",Consolas,monospace}.muted{fill:#7790aa}.dim{fill:#526a82}.ink{fill:#e6f4ff}.cyan{fill:#22d3ee}.green{fill:#34d399}
+      .eyebrow{font-size:13px;font-weight:600;letter-spacing:3px}.brand{font-size:47px;font-weight:700;letter-spacing:1px}.cn-title{font-size:25px;font-weight:600}.copy{font-size:16px}.tiny{font-size:11px}.small{font-size:13px}.node-title{font-size:13px;font-weight:700;letter-spacing:1px}.node-copy{font-size:11px}.metric{font-size:29px;font-weight:700}.metric-label{font-size:11px;letter-spacing:1.5px}
+      .hair{stroke:#27435d;stroke-width:1}.wire{fill:none;stroke:#22d3ee;stroke-width:1.5;opacity:.65}.wire-dim{fill:none;stroke:#31506b;stroke-width:1}.dash{stroke-dasharray:5 7}.terminal{fill:#081321;stroke:#28445e;stroke-width:1}.chip{fill:#0c2032;stroke:#27516a;stroke-width:1}.chip-green{fill:#09251f;stroke:#1b6a52;stroke-width:1}
+    </style>
+  </defs>
+
+  <rect width="1440" height="720" rx="28" fill="url(#bg)"/>
+  <rect width="1440" height="720" rx="28" fill="url(#grid)"/>
+  <path d="M0 118H1440M0 552H1440" class="hair" opacity="0.75"/>
+  <path d="M880 118V552" class="hair" opacity="0.65"/>
+
+  <!-- system status bar -->
+  <g transform="translate(58 42)">
+    <g filter="url(#glow)"><circle cx="7" cy="7" r="5" fill="#34d399"/></g>
+    <text x="24" y="12" class="small green mono">SYSTEM READY</text>
+    <text x="174" y="12" class="small dim mono">/</text>
+    <text x="194" y="12" class="small muted mono">QMT NATIVE</text>
+    <text x="298" y="12" class="small dim mono">/</text>
+    <text x="318" y="12" class="small muted mono">DAILY ALPHA</text>
+    <text x="430" y="12" class="small dim mono">/</text>
+    <text x="450" y="12" class="small muted mono">FAIL-CLOSED EXECUTION</text>
+  </g>
+  <g transform="translate(1210 34)">
+    <rect width="170" height="30" rx="5" class="terminal"/>
+    <text x="16" y="20" class="small muted mono">CORE / v0.5.2</text>
+  </g>
+
+  <!-- identity -->
+  <g transform="translate(70 154)">
+    <text class="eyebrow cyan mono">SELF-HOSTED RESEARCH · DETERMINISTIC SIGNAL · GUARDED LIVE</text>
+    <text y="72" class="brand ink mono">ETF ADAPTIVE ROTATION</text>
+    <rect y="93" width="94" height="3" rx="1.5" fill="url(#accent)"/>
+    <text y="138" class="cn-title ink">面向 QMT / xtquant 的独立 ETF 量化投资系统</text>
+    <text y="175" class="copy muted">多周期动量捕捉趋势，波动率预算决定仓位，四周错峰降低时点噪声，</text>
+    <text y="202" class="copy muted">因果回测与账户级安全锁贯穿研究、信号、执行和审计。</text>
+  </g>
+
+  <!-- integrated pipeline -->
+  <g transform="translate(70 412)">
+    <path d="M122 38H172M302 38H352M482 38H532M662 38H712" class="wire" marker-end="url(#arrow)"/>
+    <g>
+      <rect width="120" height="76" rx="8" class="terminal"/>
+      <text x="14" y="25" class="node-title cyan mono">01 / DATA</text>
+      <text x="14" y="49" class="node-copy muted">QMT + XSHG</text><text x="14" y="65" class="node-copy dim">CAUSAL BOUNDARY</text>
+    </g>
+    <g transform="translate(180)">
+      <rect width="120" height="76" rx="8" class="terminal"/>
+      <text x="14" y="25" class="node-title cyan mono">02 / ALPHA</text>
+      <text x="14" y="49" class="node-copy muted">TREND + MOMENTUM</text><text x="14" y="65" class="node-copy dim">CROSS-SECTION</text>
+    </g>
+    <g transform="translate(360)">
+      <rect width="120" height="76" rx="8" class="terminal"/>
+      <text x="14" y="25" class="node-title cyan mono">03 / ALLOC</text>
+      <text x="14" y="49" class="node-copy muted">INV-VOL + SLEEVES</text><text x="14" y="65" class="node-copy dim">VOL CAP 10%</text>
+    </g>
+    <g transform="translate(540)">
+      <rect width="120" height="76" rx="8" class="terminal"/>
+      <text x="14" y="25" class="node-title cyan mono">04 / RISK</text>
+      <text x="14" y="49" class="node-copy muted">ATR + DRAWDOWN</text><text x="14" y="65" class="node-copy dim">PORTFOLIO KERNEL</text>
+    </g>
+    <g transform="translate(720)">
+      <rect width="120" height="76" rx="8" class="chip-green"/>
+      <text x="14" y="25" class="node-title green mono">05 / EXEC</text>
+      <text x="14" y="49" class="node-copy muted">PLAN + LEDGER</text><text x="14" y="65" class="node-copy green">DRY-RUN DEFAULT</text>
+    </g>
+  </g>
+
+  <!-- quant core -->
+  <g transform="translate(1110 323)">
+    <circle r="166" fill="none" stroke="#17324a" stroke-width="1"/>
+    <circle r="128" fill="#071422" stroke="#24526c" stroke-width="1.5"/>
+    <circle r="92" fill="none" stroke="#22d3ee" stroke-opacity="0.22" stroke-width="8"/>
+    <circle r="72" fill="#092032" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow)"/>
+    <path d="M-52-50 0-82 52-50 52 10 0 42-52 10Z" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.9"/>
+    <text y="-15" text-anchor="middle" class="tiny cyan mono" letter-spacing="2">QUANT CORE</text>
+    <text y="18" text-anchor="middle" class="metric ink mono">σ 10%</text>
+    <text y="42" text-anchor="middle" class="tiny muted mono">TARGET VOL</text>
+
+    <g transform="translate(-118 -105)"><circle r="5" fill="#22d3ee"/><text x="14" y="4" class="tiny muted mono">MOMENTUM</text></g>
+    <g transform="translate(84 -112)"><circle r="5" fill="#34d399"/><text x="14" y="4" class="tiny muted mono">TREND</text></g>
+    <g transform="translate(-145 98)"><circle r="5" fill="#34d399"/><text x="14" y="4" class="tiny muted mono">4× SLEEVES</text></g>
+    <g transform="translate(88 108)"><circle r="5" fill="#22d3ee"/><text x="14" y="4" class="tiny muted mono">RISK</text></g>
+    <path d="M-114-101-63-54M88-108 55-57M-137 94-61 45M92 104 61 48" class="wire-dim dash"/>
+  </g>
+
+  <!-- faint telemetry chart -->
+  <g opacity="0.6">
+    <path d="M884 477 C930 464 949 470 982 443 S1040 458 1071 421 1139 426 1166 382 1214 400 1244 353 1295 375 1370 292 L1370 523H884Z" fill="url(#chart-fill)"/>
+    <path d="M884 477 C930 464 949 470 982 443 S1040 458 1071 421 1139 426 1166 382 1214 400 1244 353 1295 375 1370 292" fill="none" stroke="#22d3ee" stroke-width="1.4"/>
+  </g>
+
+  <!-- research telemetry -->
+  <g transform="translate(70 586)">
+    <text class="metric-label cyan mono">AUDITED RESEARCH SNAPSHOT / 2015—2026</text>
+    <g transform="translate(0 36)">
+      <text class="metric green mono">5.83%</text><text y="25" class="metric-label muted mono">CAGR</text>
+    </g>
+    <line x1="160" y1="28" x2="160" y2="79" class="hair"/>
+    <g transform="translate(195 36)">
+      <text class="metric ink mono">6.46%</text><text y="25" class="metric-label muted mono">MAX DRAWDOWN</text>
+    </g>
+    <line x1="372" y1="28" x2="372" y2="79" class="hair"/>
+    <g transform="translate(407 36)">
+      <text class="metric ink mono">1.004</text><text y="25" class="metric-label muted mono">SHARPE</text>
+    </g>
+    <line x1="564" y1="28" x2="564" y2="79" class="hair"/>
+    <g transform="translate(599 36)">
+      <text class="metric green mono">10 / 10</text><text y="25" class="metric-label muted mono">POSITIVE 3Y WINDOWS</text>
+    </g>
+  </g>
+  <text x="1372" y="684" text-anchor="end" class="tiny dim">HISTORICAL RESEARCH · NOT A RETURN PROMISE</text>
+</svg>

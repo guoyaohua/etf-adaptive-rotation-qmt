@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-labelledby="title desc">
+  <title id="title">ETF 自适应轮动 Alpha 与组合构建引擎</title>
+  <desc id="desc">深色量化终端风格技术图，从已完成日线、资格过滤、趋势与多周期动量开始，经风险调整排名、风险组与相关性约束，生成逆波动率、目标波动率和四周错峰聚合后的目标权重。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b14"/><stop offset="1" stop-color="#0a182a"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#082331"/><stop offset="1" stop-color="#0a1b2d"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#223e56" stroke-width="1" opacity=".24"/>
+    </pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#22d3ee"/></marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#34d399"/></marker>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      text{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Microsoft YaHei",sans-serif}.ink{fill:#e6f4ff}.muted{fill:#88a2ba}.dim{fill:#58738c}.cyan{fill:#22d3ee}.green{fill:#34d399}.amber{fill:#fbbf24}
+      .title{font-size:30px;font-weight:700}.subtitle{font-size:14px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:2.2px}.lane{font-size:11px;font-weight:700;letter-spacing:1.5px}.node-title{font-size:14px;font-weight:700}.node-copy{font-size:11px}.tiny{font-size:10px}.formula{font-size:13px}.metric{font-size:17px;font-weight:700}
+      .panel{fill:#071321;stroke:#24435d;stroke-width:1}.core-panel{fill:url(#core);stroke:#26718a;stroke-width:1.3}.node{fill:#0a1929;stroke:#2a4963;stroke-width:1}.node-cyan{fill:#082330;stroke:#24768b;stroke-width:1}.node-green{fill:#09231f;stroke:#1d7056;stroke-width:1}.node-amber{fill:#261d0b;stroke:#8a641c;stroke-width:1}.chip{fill:#0b1d2d;stroke:#2a4963;stroke-width:1}.wire{fill:none;stroke:#22d3ee;stroke-width:1.4;marker-end:url(#arrow)}.wire-green{fill:none;stroke:#34d399;stroke-width:1.4;marker-end:url(#arrow-green)}.rail{stroke:#294760;stroke-width:1}.dash{stroke-dasharray:5 6}.bar-bg{fill:#10283a}.bar-1{fill:#22d3ee}.bar-2{fill:#34d399}.bar-3{fill:#fbbf24}
+    </style>
+  </defs>
+
+  <rect width="1440" height="760" rx="28" fill="url(#bg)"/>
+  <rect width="1440" height="760" rx="28" fill="url(#grid)"/>
+
+  <g transform="translate(58 42)">
+    <text class="eyebrow cyan">ALPHA GRAPH / CAUSAL SIGNAL TO RISK-BUDGETED PORTFOLIO</text>
+    <text y="45" class="title ink">Alpha 不是一个分数，而是一条可复现的组合构建流水线</text>
+    <text y="73" class="subtitle muted">每个目标权重都能回溯到行情边界、资格闸门、特征快照、筛选约束与四份子组合。</text>
+  </g>
+  <g transform="translate(1170 46)">
+    <rect width="212" height="48" rx="6" class="node-green"/>
+    <circle cx="17" cy="17" r="4" fill="#34d399" filter="url(#glow)"/>
+    <text x="31" y="21" class="lane green">DETERMINISTIC CORE</text>
+    <text x="16" y="38" class="tiny muted">NO FUTURE DATA · NO LEVERAGE</text>
+  </g>
+
+  <!-- primary signal graph -->
+  <g transform="translate(58 145)">
+    <text class="lane dim">DECISION GRAPH / T CLOSE → NEXT SESSION OPEN</text>
+    <rect y="22" width="1324" height="244" rx="12" class="panel"/>
+
+    <path d="M158 140H180M378 140H400M668 140H690M936 140H958" class="wire"/>
+
+    <g transform="translate(18 48)">
+      <rect width="138" height="184" rx="8" class="node-cyan"/>
+      <text x="14" y="25" class="lane cyan">01 / SNAPSHOT</text>
+      <text x="14" y="54" class="node-title ink">已完成日线</text>
+      <text x="14" y="78" class="node-copy muted">QMT OHLCV</text>
+      <text x="14" y="96" class="node-copy muted">XSHG 会话核验</text>
+      <line x1="14" y1="114" x2="124" y2="114" class="rail"/>
+      <text x="14" y="137" class="tiny dim">BOUNDARY</text>
+      <text x="14" y="158" class="node-copy green">close ≤ T</text>
+      <text x="14" y="176" class="tiny dim">NEXT SESSION OR LATER</text>
+    </g>
+
+    <g transform="translate(188 48)">
+      <rect width="188" height="184" rx="8" class="node"/>
+      <text x="14" y="25" class="lane cyan">02 / ELIGIBILITY</text>
+      <text x="14" y="54" class="node-title ink">可交易资格闸门</text>
+      <g transform="translate(14 72)">
+        <rect width="160" height="24" rx="4" class="chip"/><text x="10" y="16" class="node-copy muted">样本长度 · 指标完整</text>
+        <rect y="34" width="160" height="24" rx="4" class="chip"/><text x="10" y="50" class="tiny muted">价格 · 20 日平均成交额</text>
+        <rect y="68" width="160" height="24" rx="4" class="chip"/><text x="10" y="84" class="node-copy muted">现金代理黑窗政策</text>
+      </g>
+      <text x="14" y="176" class="tiny amber">ANY FAILURE → REJECT</text>
+    </g>
+
+    <g transform="translate(408 48)">
+      <rect width="258" height="184" rx="8" class="core-panel"/>
+      <text x="14" y="25" class="lane cyan">03 / ALPHA STACK</text>
+      <text x="14" y="52" class="node-title ink">趋势闸门 + 多周期动量</text>
+      <text x="14" y="77" class="node-copy muted">SMA 长期趋势 · EMA 斜率 &gt; 0</text>
+      <text x="14" y="98" class="node-copy muted">20 / 60 / 120 日收益 · skip 5</text>
+      <line x1="14" y1="114" x2="244" y2="114" class="rail"/>
+      <text x="14" y="138" class="formula cyan">M = .20R20 + .30R60 + .50R120</text>
+      <text x="14" y="162" class="formula green">SCORE = M / max(σ40,.10)^.75</text>
+      <text x="14" y="179" class="tiny dim">ABSOLUTE + CROSS-SECTIONAL</text>
+    </g>
+
+    <g transform="translate(698 48)">
+      <rect width="236" height="184" rx="8" class="node"/>
+      <text x="14" y="25" class="lane cyan">04 / SELECT</text>
+      <text x="14" y="54" class="node-title ink">约束下的横截面竞争</text>
+      <g transform="translate(14 72)">
+        <rect width="208" height="25" rx="4" class="chip"/><text x="10" y="17" class="node-copy muted">风险组互斥 · 每组 ≤ 1</text>
+        <rect y="35" width="208" height="25" rx="4" class="chip"/><text x="10" y="52" class="node-copy muted">60 日相关系数 ≤ 0.85</text>
+        <rect y="70" width="208" height="25" rx="4" class="node-green"/><text x="10" y="87" class="node-copy green">按 Score 选择 TOP-K</text>
+      </g>
+      <text x="14" y="176" class="tiny dim">STOCK · GOLD · BOND COMPETE</text>
+    </g>
+
+    <g transform="translate(966 48)">
+      <rect width="340" height="184" rx="8" class="node-green"/>
+      <text x="14" y="25" class="lane green">05 / TARGET PORTFOLIO</text>
+      <text x="14" y="54" class="node-title ink">风险预算决定最终仓位</text>
+      <text x="14" y="79" class="formula green">w ∝ 1 / σ</text>
+      <text x="106" y="79" class="node-copy muted">→ 组合年化波动率 ≤ 10%</text>
+      <g transform="translate(14 99)">
+        <rect width="150" height="25" rx="4" class="chip"/><text x="10" y="17" class="node-copy muted">单资产 ≤ 40%</text>
+        <rect x="162" width="150" height="25" rx="4" class="chip"/><text x="10" y="17" class="node-copy muted">风险资产 ≤ 90%</text>
+        <rect y="35" width="150" height="25" rx="4" class="chip"/><text x="10" y="52" class="node-copy muted">免交易带 1%</text>
+        <rect x="162" y="35" width="150" height="25" rx="4" class="chip"/><text x="10" y="52" class="node-copy muted">无杠杆放大</text>
+      </g>
+      <text x="14" y="176" class="tiny green">OUTPUT / AUDITABLE TARGET WEIGHTS</text>
+    </g>
+  </g>
+
+  <!-- lower technical detail -->
+  <g transform="translate(58 444)">
+    <g>
+      <rect width="424" height="250" rx="12" class="panel"/>
+      <text x="18" y="30" class="lane cyan">MULTI-HORIZON MOMENTUM / FIXED WEIGHTS</text>
+      <text x="18" y="58" class="node-title ink">不同时间尺度贡献同一 Alpha</text>
+      <g transform="translate(18 86)">
+        <text y="12" class="node-copy muted">R20</text><rect x="54" width="314" height="14" rx="3" class="bar-bg"/><rect x="54" width="63" height="14" rx="3" class="bar-1"/><text x="380" y="12" class="tiny cyan">20%</text>
+        <text y="52" class="node-copy muted">R60</text><rect x="54" y="40" width="314" height="14" rx="3" class="bar-bg"/><rect x="54" y="40" width="94" height="14" rx="3" class="bar-2"/><text x="380" y="52" class="tiny green">30%</text>
+        <text y="92" class="node-copy muted">R120</text><rect x="54" y="80" width="314" height="14" rx="3" class="bar-bg"/><rect x="54" y="80" width="157" height="14" rx="3" class="bar-3"/><text x="380" y="92" class="tiny amber">50%</text>
+      </g>
+      <line x1="18" y1="196" x2="406" y2="196" class="rail"/>
+      <text x="18" y="220" class="node-copy muted">最近 5 个交易日不计入动量，降低短期反转噪声。</text>
+      <text x="18" y="239" class="tiny dim">FEATURES ARE SNAPSHOTTED BEFORE RANKING</text>
+    </g>
+
+    <g transform="translate(450)">
+      <rect width="372" height="250" rx="12" class="panel"/>
+      <text x="18" y="30" class="lane cyan">4× STAGGERED SLEEVES</text>
+      <text x="18" y="58" class="node-title ink">每周只更新四分之一组合</text>
+      <g transform="translate(18 84)">
+        <rect width="74" height="78" rx="7" class="node-cyan"/><text x="37" y="29" text-anchor="middle" class="metric cyan">A</text><text x="37" y="52" text-anchor="middle" class="tiny muted">WEEK 0</text>
+        <rect x="86" width="74" height="78" rx="7" class="node"/><text x="123" y="29" text-anchor="middle" class="metric ink">B</text><text x="123" y="52" text-anchor="middle" class="tiny muted">WEEK -1</text>
+        <rect x="172" width="74" height="78" rx="7" class="node"/><text x="209" y="29" text-anchor="middle" class="metric ink">C</text><text x="209" y="52" text-anchor="middle" class="tiny muted">WEEK -2</text>
+        <rect x="258" width="74" height="78" rx="7" class="node"/><text x="295" y="29" text-anchor="middle" class="metric ink">D</text><text x="295" y="52" text-anchor="middle" class="tiny muted">WEEK -3</text>
+      </g>
+      <path d="M184 174V199" class="wire-green"/>
+      <rect x="78" y="200" width="216" height="34" rx="6" class="node-green"/>
+      <text x="186" y="222" text-anchor="middle" class="node-copy green">TARGET = (A + B + C + D) / 4</text>
+    </g>
+
+    <g transform="translate(848)">
+      <rect width="476" height="250" rx="12" class="panel"/>
+      <text x="18" y="30" class="lane green">PORTFOLIO INVARIANTS / HARD CONSTRAINTS</text>
+      <text x="18" y="58" class="node-title ink">收益引擎始终运行在风险预算内</text>
+      <g transform="translate(18 84)">
+        <rect width="210" height="56" rx="7" class="node"/><text x="14" y="23" class="node-copy muted">PORTFOLIO VOL CEILING</text><text x="196" y="39" text-anchor="end" class="metric cyan">10%</text>
+        <rect x="222" width="218" height="56" rx="7" class="node"/><text x="236" y="23" class="node-copy muted">PAIRWISE CORRELATION</text><text x="426" y="39" text-anchor="end" class="metric cyan">≤ .85</text>
+        <rect y="68" width="210" height="56" rx="7" class="node"/><text x="14" y="91" class="node-copy muted">SINGLE ASSET CAP</text><text x="196" y="107" text-anchor="end" class="metric green">40%</text>
+        <rect x="222" y="68" width="218" height="56" rx="7" class="node-green"/><text x="236" y="91" class="node-copy muted">CASH PROXY OPTIONAL</text><text x="426" y="107" text-anchor="end" class="metric green">≤ 30%</text>
+      </g>
+      <text x="18" y="228" class="tiny dim">VIOLATION → REJECT, CAP, SCALE OR RETAIN CASH</text>
+    </g>
+  </g>
+</svg>
